@@ -14,7 +14,7 @@
 | [New_Api_Handler](./src/new_api_handler.py) | `.py` | Used to transform the dictionary created by vlr_stealer into a new item of partidas.json (referes to matches). |
 | [Disc_buttons](./src/disc_buttons.py) | `.py` | Creates interactable buttons used to "switch pages" into discord embed. |
 | [Main](./src/main.py) | `.py` | Discord bot logic. |
-| [botAPI](./src/botAPI) | `dir / .json` | All the .json used as "database". |
+| [botAPI](./botAPI) | `dir / .json` | All the .json used as "database". |
 
 ---
 
