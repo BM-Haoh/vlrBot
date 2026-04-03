@@ -10,7 +10,7 @@ import disc_buttons
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
-filename = str(os.path.join("BotAPP", "discord.log"))
+filename = str(os.path.join("VLRBOT", "discord.log"))
 
 handler = logging.FileHandler(filename=filename, encoding='utf-8', mode='w')
 intents = discord.Intents.default()
