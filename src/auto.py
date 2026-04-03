@@ -356,12 +356,15 @@ class vlr_stealer():
                 }
             )
 
+        id = self.__get_id()
+
         # if optional link, return to the tournament page which it was before
         if link:
             self.browser.get(opening_url)
 
         # Dict formatted to be stored
         return [{
+            'id': id,
             'camp': self.camp,
             'times': [self.teams[times[0]], self.teams[times[1]]],
             'mapas': map_infos[:],
@@ -369,6 +372,13 @@ class vlr_stealer():
             'winner': "A" if placar[0] > placar[1] else "B"
         }]
 
+    def __get_id(self, link=None):
+        if link:
+            self.browser.get(link)
+
+        url = self.browser.current_url
+        return url.split('/')[3]
+    
     def last_match_info(self, link=None, quantity=1):
         '''
         processing "recently" match information
@@ -606,12 +616,17 @@ if __name__ == "__main__":
     linkEM = 'https://www.vlr.gg/event/2684/vct-2026-emea-kickoff'
     linkCH = 'https://www.vlr.gg/event/2685/vct-2026-china-kickoff'
     linkAP = 'https://www.vlr.gg/event/2683/vct-2026-pacific-kickoff'
+    linkMA = 'https://www.vlr.gg/event/2760/valorant-masters-santiago-2026'
     mtc_gtr = vlr_stealer(linkAM)
     
-    #for camp in [linkAM, linkEM, linkCH, linkAP]:
-    json = mtc_gtr.last_match_info('https://www.vlr.gg/event/2760/valorant-masters-santiago-2026')
-    api_handler = nah.handler(json)
-    api_handler.add_partidas()
+    for camp in [linkAM, linkEM, linkCH, linkAP, linkMA]:
+        json = mtc_gtr.process_camp(camp)
+        api_handler = nah.handler(json)
+        api_handler.add_partidas()
+
+    # json = mtc_gtr.match_info('https://www.vlr.gg/596399/envy-vs-evil-geniuses-vct-2026-americas-kickoff-ur1')
+    # api_handler = nah.handler(json)
+    # api_handler.add_partidas()
     
     
     

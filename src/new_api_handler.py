@@ -110,6 +110,7 @@ class handler():
             self.partidas.append(
                 {
                     "id": self.partidas[-1]["id"] + 1,
+                    "new_id": partida.get('id'),
                     "camp": partida.get("camp"),
                     "timeA/B": partida.get("times"),
                     "mapas": partida.get("mapas"),

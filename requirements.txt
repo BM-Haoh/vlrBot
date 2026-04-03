@@ -2,6 +2,7 @@
 selenium
 pandas
 tqdm
+plotly
 
 # Integração com Discord
 discord.py
