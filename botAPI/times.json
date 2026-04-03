@@ -1,0 +1,932 @@
+[
+    {
+        "TIME_ID": 1,
+        "nome": "mibr",
+        "tag": "MiBR",
+        "regiao": "Americas",
+        "emoji": "<:mibr:1370182490953748490>",
+        "img": "https://owcdn.net/img/632be767b57aa.png",
+        "posicao": "3",
+        "players_ID": [
+            1,
+            2,
+            3,
+            4,
+            5
+        ],
+        "partidas": [
+            6,
+            15,
+            27,
+            29,
+            30
+        ]
+    },
+    {
+        "TIME_ID": 2,
+        "nome": "g2 esports",
+        "tag": "G2",
+        "regiao": "Americas",
+        "emoji": "<:g2:1370182477204947074>",
+        "img": "https://owcdn.net/img/633822848a741.png",
+        "posicao": "1",
+        "players_ID": [
+            6,
+            7,
+            8,
+            9,
+            10
+        ],
+        "partidas": [
+            8,
+            16,
+            20,
+            25,
+            29,
+            123,
+            128,
+            130,
+            134,
+            137,
+            139,
+            142
+        ]
+    },
+    {
+        "TIME_ID": 3,
+        "nome": "100 thieves",
+        "tag": "100T",
+        "regiao": "Americas",
+        "emoji": "<:100t:1370182461975433256>",
+        "img": "https://owcdn.net/img/603c00d5c5a08.png",
+        "posicao": "5-6",
+        "players_ID": [
+            11,
+            12,
+            13,
+            14,
+            15
+        ],
+        "partidas": [
+            4,
+            8,
+            9,
+            13,
+            19,
+            23,
+            26,
+            28
+        ]
+    },
+    {
+        "TIME_ID": 4,
+        "nome": "sentinels",
+        "tag": "Sen",
+        "regiao": "Americas",
+        "emoji": "<:sen:1370986351037775962>",
+        "img": "https://owcdn.net/img/62875027c8e06.png",
+        "posicao": "2",
+        "players_ID": [
+            16,
+            17,
+            18,
+            19,
+            20
+        ],
+        "partidas": [
+            7,
+            10,
+            13,
+            22
+        ]
+    },
+    {
+        "TIME_ID": 5,
+        "nome": "evil geniuses",
+        "tag": "EG",
+        "regiao": "Americas",
+        "emoji": "<:eg:1370986683478048770>",
+        "img": "https://owcdn.net/img/667462e9b308d.png",
+        "posicao": "4",
+        "players_ID": [
+            21,
+            22,
+            23,
+            24,
+            25
+        ],
+        "partidas": [
+            1,
+            10,
+            17,
+            21,
+            23
+        ]
+    },
+    {
+        "TIME_ID": 6,
+        "nome": "krü esports",
+        "tag": "KRÜ",
+        "regiao": "Americas",
+        "emoji": "<:kru:1370986882737115227>",
+        "img": "https://owcdn.net/img/63976677069e1.png",
+        "posicao": "5-6",
+        "players_ID": [
+            36,
+            37,
+            38,
+            39,
+            40
+        ],
+        "partidas": [
+            3,
+            11,
+            18
+        ]
+    },
+    {
+        "TIME_ID": 7,
+        "nome": "nrg",
+        "tag": "NRG",
+        "regiao": "Americas",
+        "emoji": "<:nrg:1370987125897429002>",
+        "img": "https://owcdn.net/img/6610f02d2d7b0.png",
+        "posicao": "7-8",
+        "players_ID": [
+            52,
+            53,
+            54,
+            55,
+            56
+        ],
+        "partidas": [
+            5,
+            15,
+            19,
+            25,
+            28,
+            30,
+            122,
+            125,
+            129,
+            133,
+            138,
+            141,
+            143
+        ]
+    },
+    {
+        "TIME_ID": 8,
+        "nome": "cloud9",
+        "tag": "C9",
+        "regiao": "Americas",
+        "emoji": "<:c9:1370987283007672390>",
+        "img": "https://owcdn.net/img/628addcbd509e.png",
+        "posicao": "7-8",
+        "players_ID": [
+            26,
+            27,
+            28,
+            29,
+            30
+        ],
+        "partidas": [
+            2,
+            5,
+            12,
+            14,
+            20,
+            24,
+            26
+        ]
+    },
+    {
+        "TIME_ID": 9,
+        "nome": "envy",
+        "tag": "Envy",
+        "regiao": "Americas",
+        "emoji": "<:envy:1459050159651553350>",
+        "img": "https://owcdn.net/img/5f3ca82b04d29.png",
+        "posicao": "?",
+        "players_ID": [],
+        "partidas": [
+            1,
+            6,
+            11,
+            14,
+            21
+        ]
+    },
+    {
+        "TIME_ID": 10,
+        "nome": "leviatán",
+        "tag": "LEV",
+        "regiao": "Americas",
+        "emoji": "<:lev:1370987777281228802>",
+        "img": "https://owcdn.net/img/61b88892a9814.png",
+        "posicao": "9-10",
+        "players_ID": [
+            41,
+            42,
+            43,
+            44,
+            45
+        ],
+        "partidas": [
+            4,
+            12,
+            18,
+            22,
+            24
+        ]
+    },
+    {
+        "TIME_ID": 11,
+        "nome": "loud",
+        "tag": "LOUD",
+        "regiao": "Americas",
+        "emoji": "<:loud:1370987946274197524>",
+        "img": "https://owcdn.net/img/62bbec8dc1b9f.png",
+        "posicao": "11-12",
+        "players_ID": [
+            46,
+            48,
+            49,
+            50,
+            51
+        ],
+        "partidas": [
+            2,
+            9,
+            17
+        ]
+    },
+    {
+        "TIME_ID": 12,
+        "nome": "furia",
+        "tag": "Fur",
+        "regiao": "Americas",
+        "emoji": "<:furia:1370988169696120832>",
+        "img": "https://owcdn.net/img/632be843b7d51.png",
+        "posicao": "11-12",
+        "players_ID": [
+            31,
+            32,
+            33,
+            34,
+            35
+        ],
+        "partidas": [
+            3,
+            7,
+            16,
+            27,
+            131,
+            135
+        ]
+    },
+    {
+        "TIME_ID": 13,
+        "nome": "fnatic",
+        "tag": "FNC",
+        "regiao": "EMEA",
+        "emoji": "<:fnc:1477261719863689438>",
+        "img": "https://owcdn.net/img/62a40cc2b5e29.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            37,
+            40,
+            45,
+            49,
+            56,
+            59,
+            60
+        ]
+    },
+    {
+        "TIME_ID": 14,
+        "nome": "natus vincere",
+        "tag": "NAVI",
+        "regiao": "EMEA",
+        "emoji": "<:navi:1477262131765313667>",
+        "img": "https://owcdn.net/img/62a410a4e7b4f.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            31,
+            35,
+            43,
+            49,
+            53
+        ]
+    },
+    {
+        "TIME_ID": 15,
+        "nome": "karmine corp",
+        "tag": "KC",
+        "regiao": "EMEA",
+        "emoji": "<:kc:1477262474049880189>",
+        "img": "https://owcdn.net/img/627403aa2c53d.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            31,
+            39,
+            47,
+            51
+        ]
+    },
+    {
+        "TIME_ID": 16,
+        "nome": "fut Esports",
+        "tag": "FUT",
+        "regiao": "EMEA",
+        "emoji": "<:fut:1477262799095857182>",
+        "img": "https://owcdn.net/img/632be99c96c64.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            32,
+            40,
+            47
+        ]
+    },
+    {
+        "TIME_ID": 17,
+        "nome": "gentle mates",
+        "tag": "M8",
+        "regiao": "EMEA",
+        "emoji": "<:m8:1477263137853149355>",
+        "img": "https://owcdn.net/img/66701546055dd.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            32,
+            36,
+            43,
+            57,
+            59,
+            121,
+            126,
+            132,
+            136
+        ]
+    },
+    {
+        "TIME_ID": 18,
+        "nome": "pcific esports",
+        "tag": "PCF",
+        "regiao": "EMEA",
+        "emoji": "<:pcf:1477263402433904803>",
+        "img": "https://owcdn.net/img/656e2ae2b8a48.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            33,
+            41,
+            48
+        ]
+    },
+    {
+        "TIME_ID": 19,
+        "nome": "bbl esports",
+        "tag": "BBL",
+        "regiao": "EMEA",
+        "emoji": "<:bbl:1477263678343614575>",
+        "img": "https://owcdn.net/img/65b8ccef5e273.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            33,
+            37,
+            44,
+            57,
+            133,
+            135,
+            139
+        ]
+    },
+    {
+        "TIME_ID": 20,
+        "nome": "ulf esports",
+        "tag": "ULF",
+        "regiao": "EMEA",
+        "emoji": "<:ulf:1477263944375730176>",
+        "img": "https://owcdn.net/img/67d59c02cdba4.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            34,
+            42,
+            48,
+            52
+        ]
+    },
+    {
+        "TIME_ID": 21,
+        "nome": "team vitality",
+        "tag": "VIT",
+        "regiao": "EMEA",
+        "emoji": "<:vit:1477264177901998183>",
+        "img": "https://owcdn.net/img/6466d7936fd86.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            34,
+            38,
+            44,
+            50,
+            56,
+            58
+        ]
+    },
+    {
+        "TIME_ID": 22,
+        "nome": "team heretics",
+        "tag": "TH",
+        "regiao": "EMEA",
+        "emoji": "<:th:1477264424023883996>",
+        "img": "https://owcdn.net/img/637b7557a9225.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            35,
+            42,
+            46,
+            51,
+            53,
+            55
+        ]
+    },
+    {
+        "TIME_ID": 23,
+        "nome": "giantx",
+        "tag": "GX",
+        "regiao": "EMEA",
+        "emoji": "<:gx:1477264658632282227>",
+        "img": "https://owcdn.net/img/657b2f49210a3.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            36,
+            41,
+            46,
+            50,
+            54
+        ]
+    },
+    {
+        "TIME_ID": 24,
+        "nome": "team liquid",
+        "tag": "TL",
+        "regiao": "EMEA",
+        "emoji": "<:tl:1477264875498635385>",
+        "img": "https://owcdn.net/img/640c38262824c.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            38,
+            39,
+            45,
+            52,
+            54,
+            55,
+            58,
+            60,
+            124,
+            126,
+            129
+        ]
+    },
+    {
+        "TIME_ID": 25,
+        "nome": "trace esports",
+        "tag": "TE",
+        "regiao": "China",
+        "emoji": "<:te:1477265158492393513>",
+        "img": "https://owcdn.net/img/6433a2d3b58c9.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            61,
+            71,
+            74,
+            79,
+            83
+        ]
+    },
+    {
+        "TIME_ID": 26,
+        "nome": "wolves esports",
+        "tag": "WOL",
+        "regiao": "China",
+        "emoji": "<:wol:1477265441855635496>",
+        "img": "https://owcdn.net/img/651d33f8e6a1f.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            61,
+            65,
+            70,
+            75,
+            79
+        ]
+    },
+    {
+        "TIME_ID": 27,
+        "nome": "funplus phoenix",
+        "tag": "FPX",
+        "regiao": "China",
+        "emoji": "<:fpx:1477265726426316852>",
+        "img": "https://owcdn.net/img/65a17b313b131.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            62,
+            72,
+            77
+        ]
+    },
+    {
+        "TIME_ID": 28,
+        "nome": "tyloo",
+        "tag": "TYL",
+        "regiao": "China",
+        "emoji": "<:tyl:1477265937336893572>",
+        "img": "https://owcdn.net/img/63eb60fb08390.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            62,
+            66,
+            69,
+            73,
+            80,
+            83,
+            86
+        ]
+    },
+    {
+        "TIME_ID": 29,
+        "nome": "all gamers",
+        "tag": "AG",
+        "regiao": "China",
+        "emoji": "<:ag:1477266447737815195>",
+        "img": "https://owcdn.net/img/6549c2b905061.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            63,
+            67,
+            76,
+            88,
+            134,
+            136,
+            140
+        ]
+    },
+    {
+        "TIME_ID": 30,
+        "nome": "nova esports",
+        "tag": "NOVA",
+        "regiao": "China",
+        "emoji": "<:nova:1477266684992553010>",
+        "img": "https://owcdn.net/img/6404c031b6c67.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            63,
+            69,
+            75
+        ]
+    },
+    {
+        "TIME_ID": 31,
+        "nome": "jdg esports",
+        "tag": "JDG",
+        "regiao": "China",
+        "emoji": "<:jdg:1477266944930353193>",
+        "img": "https://owcdn.net/img/64f9825408326.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            64,
+            68,
+            71,
+            77,
+            81,
+            84
+        ]
+    },
+    {
+        "TIME_ID": 32,
+        "nome": "titan esports club",
+        "tag": "TEC",
+        "regiao": "China",
+        "emoji": "<:tec:1477267230332026890>",
+        "img": "https://owcdn.net/img/6548741adc65f.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            64,
+            70,
+            73,
+            81
+        ]
+    },
+    {
+        "TIME_ID": 33,
+        "nome": "xi lai gaming",
+        "tag": "XLG",
+        "regiao": "China",
+        "emoji": "<:xlg:1477267543117926430>",
+        "img": "https://owcdn.net/img/671742f863b9b.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            65,
+            78,
+            88,
+            89,
+            122,
+            128
+        ]
+    },
+    {
+        "TIME_ID": 34,
+        "nome": "edward gaming",
+        "tag": "EDG",
+        "regiao": "China",
+        "emoji": "<:edg:1477267758524923954>",
+        "img": "https://owcdn.net/img/62c8204fbb29d.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            66,
+            78,
+            82,
+            84,
+            86,
+            87,
+            90,
+            121,
+            127
+        ]
+    },
+    {
+        "TIME_ID": 35,
+        "nome": "bilibili gaming",
+        "tag": "BLG",
+        "regiao": "China",
+        "emoji": "<:blg:1477267994521374753>",
+        "img": "https://owcdn.net/img/63f25d72216c1.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            67,
+            72,
+            74,
+            82,
+            85,
+            89,
+            90
+        ]
+    },
+    {
+        "TIME_ID": 36,
+        "nome": "dragon ranger gaming",
+        "tag": "DRG",
+        "regiao": "China",
+        "emoji": "<:drg:1477268189527408660>",
+        "img": "https://owcdn.net/img/642233fc01f26.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            68,
+            76,
+            80,
+            85,
+            87
+        ]
+    },
+    {
+        "TIME_ID": 37,
+        "nome": "nongshim redforce",
+        "tag": "NS",
+        "regiao": "APAC",
+        "emoji": "<:ns:1477268521372356628>",
+        "img": "https://owcdn.net/img/6399bb707aacb.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            91,
+            95,
+            103,
+            117,
+            132,
+            137,
+            141,
+            144
+        ]
+    },
+    {
+        "TIME_ID": 38,
+        "nome": "team secret",
+        "tag": "TS",
+        "regiao": "APAC",
+        "emoji": "<:ts:1477268771717779682>",
+        "img": "https://owcdn.net/img/629f130e0501d.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            91,
+            99,
+            107
+        ]
+    },
+    {
+        "TIME_ID": 39,
+        "nome": "zeta division",
+        "tag": "ZETA",
+        "regiao": "APAC",
+        "emoji": "<:zeta:1477268991230869515>",
+        "img": "https://owcdn.net/img/62a4117e1c021.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            92,
+            100,
+            107,
+            111
+        ]
+    },
+    {
+        "TIME_ID": 40,
+        "nome": "full sense",
+        "tag": "FS",
+        "regiao": "APAC",
+        "emoji": "<:fs:1477269208437096478>",
+        "img": "https://owcdn.net/img/6537a7954d915.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            92,
+            96,
+            103,
+            109,
+            113
+        ]
+    },
+    {
+        "TIME_ID": 41,
+        "nome": "global esports",
+        "tag": "GE",
+        "regiao": "APAC",
+        "emoji": "<:ge:1477269832293683273>",
+        "img": "https://owcdn.net/img/629f316ddd4dd.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            93,
+            97,
+            100,
+            105,
+            112,
+            114
+        ]
+    },
+    {
+        "TIME_ID": 42,
+        "nome": "detonation focusme",
+        "tag": "DFM",
+        "regiao": "APAC",
+        "emoji": "<:dfm:1477270070479552572>",
+        "img": "https://owcdn.net/img/63972e75f18ed.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            94,
+            98,
+            99,
+            105,
+            109,
+            116,
+            118
+        ]
+    },
+    {
+        "TIME_ID": 43,
+        "nome": "gen.g",
+        "tag": "GEN",
+        "regiao": "APAC",
+        "emoji": "<:gen:1477270293000093707>",
+        "img": "https://owcdn.net/img/6970c986eddc6.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            94,
+            102,
+            108,
+            112
+        ]
+    },
+    {
+        "TIME_ID": 44,
+        "nome": "t1",
+        "tag": "T1",
+        "regiao": "APAC",
+        "emoji": "<:t1:1477270522713739418>",
+        "img": "https://owcdn.net/img/62fe0b8f6b084.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            95,
+            102,
+            106,
+            110,
+            116,
+            119,
+            124,
+            127,
+            130
+        ]
+    },
+    {
+        "TIME_ID": 45,
+        "nome": "drx",
+        "tag": "DRX",
+        "regiao": "APAC",
+        "emoji": "<:drx:1477270704650190869>",
+        "img": "https://owcdn.net/img/63b17ac3a7d00.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            96,
+            101,
+            106,
+            111,
+            113,
+            115
+        ]
+    },
+    {
+        "TIME_ID": 46,
+        "nome": "paper rex",
+        "tag": "PRX",
+        "regiao": "APAC",
+        "emoji": "<:prx:1477270909784948936>",
+        "img": "https://owcdn.net/img/62bbebb185a7e.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            97,
+            104,
+            110,
+            114,
+            115,
+            118,
+            120,
+            123,
+            125,
+            131,
+            138,
+            140,
+            142,
+            143,
+            144
+        ]
+    },
+    {
+        "TIME_ID": 47,
+        "nome": "rex regum qeon",
+        "tag": "RRQ",
+        "regiao": "APAC",
+        "emoji": "<:rrq:1477271206150537347>",
+        "img": "https://owcdn.net/img/629f17f51e7a3.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            98,
+            104,
+            117,
+            119,
+            120
+        ]
+    },
+    {
+        "TIME_ID": 48,
+        "nome": "varrel",
+        "tag": "VL",
+        "regiao": "APAC",
+        "emoji": "<:vl:1477271476414451762>",
+        "img": "https://owcdn.net/img/63a746333bc0a.png",
+        "posicao": "--",
+        "players_ID": [],
+        "partidas": [
+            93,
+            101,
+            108
+        ]
+    }
+]

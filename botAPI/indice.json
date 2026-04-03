@@ -1,0 +1,32 @@
+{
+    "campeonatos": {
+        "regionais": ["Kickoff", "Stage1"],
+        "internacionais": ["Masters Bangkok"]
+    },
+
+    "partidas": {
+        "path": "partidas.json",
+        "descricao": "Caminho para todas as partidas registradas"
+    },
+
+    "times": {
+        "path": "times.json",
+        "descricao": "Caminho para todos os times registrados"
+    },
+
+    "players": {
+        "path": "players.json",
+        "descricao": "Caminho para todos os players registrados"
+    },
+
+    "agents": {
+        "path": "VLR_agents.json",
+        "descricao": "Caminho para informação dos agentes de Valorant"
+    },
+
+    "mapas": {
+        "path": "VLR_mapas.json",
+        "pool": [1, 2, 4, 5, 7, 9, 12],
+        "descricao": "Caminho para informação dos agentes de Valorant"
+    }
+}

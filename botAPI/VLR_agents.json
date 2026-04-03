@@ -1,0 +1,198 @@
+[
+    {
+        "id": 1,
+        "nome": "Brimstone",
+        "role": "Controlador",
+        "img": "<:brimstone:1368780837134270557>"
+    },
+
+    {
+        "id": 2,
+        "nome": "Jett",
+        "role": "Duelista",
+        "img": "<:jett:1368780961872875530>"
+    },
+
+    {
+        "id": 3,
+        "nome": "Phoenix",
+        "role": "Duelista",
+        "img": "<:phoenix:1368781025647530109>"
+    },
+
+    {
+        "id": 4,
+        "nome": "Sage",
+        "role": "Sentinela",
+        "img": "<:sage:1368781061101981696>"
+    },
+
+    {
+        "id": 5,
+        "nome": "Viper",
+        "role": "Controlador",
+        "img": "<:viper:1368781126700630169>"
+    },
+
+    {
+        "id": 6,
+        "nome": "Omen",
+        "role": "Controlador",
+        "img": "<:omen:1368781012825280624>"
+    },
+
+    {
+        "id": 7,
+        "nome": "Cypher",
+        "role": "Sentinela",
+        "img": "<:cypher:1368780879882752041>"
+    },
+
+    {
+        "id": 8,
+        "nome": "Sova",
+        "role": "Iniciador",
+        "img": "<:sova:1368781086800482434>"
+    },
+
+    {
+        "id": 9,
+        "nome": "Raze",
+        "role": "Duelista",
+        "img": "<:raze:1368781038578303017>"
+    },
+
+    {
+        "id": 10,
+        "nome": "Breach",
+        "role": "Iniciador",
+        "img": "<:breach:1368780816955605164>"
+    },
+
+    {
+        "id": 11,
+        "nome": "Reyna",
+        "role": "Duelista",
+        "img": "<:reyna:1368781050003722260>"
+    },
+
+    {
+        "id": 12,
+        "nome": "Killjoy",
+        "role": "Sentinela",
+        "img": "<:killjoy:1368780988674609300>"
+    },
+
+    {
+        "id": 13,
+        "nome": "Skye",
+        "role": "Iniciador",
+        "img": "<:skye:1368781072833450185>"
+    },
+
+    {
+        "id": 14,
+        "nome": "Yoru",
+        "role": "Duelista",
+        "img": "<:yoru:1368781157491277884>"
+    },
+
+    {
+        "id": 15,
+        "nome": "Astra",
+        "role": "Controlador",
+        "img": "<:astra:1368780800874516541>"
+    },
+
+    {
+        "id": 16,
+        "nome": "Kayo",
+        "role": "Iniciador",
+        "img": "<:kayo:1368780974288011344>"
+    },
+
+    {
+        "id": 17,
+        "nome": "Chamber",
+        "role": "Sentinela",
+        "img": "<:chamber:1368780851466211408>"
+    },
+
+    {
+        "id": 18,
+        "nome": "Neon",
+        "role": "Duelista",
+        "img": "<:neon:1368782851624931440>"
+    },
+
+    {
+        "id": 19,
+        "nome": "Fade",
+        "role": "Iniciador",
+        "img": "<:fade:1368780904729939999>"
+    },
+
+    {
+        "id": 20,
+        "nome": "Harbor",
+        "role": "Controlador",
+        "img": "<:harbor:1368780933167054988>"
+    },
+
+    {
+        "id": 21,
+        "nome": "Gekko",
+        "role": "Iniciador",
+        "img": "<:gekko:1368780919850405938>"
+    },
+
+    {
+        "id": 22,
+        "nome": "Deadlock",
+        "role": "Sentinela",
+        "img": "<:deadlock:1368780892926902352>"
+    },
+
+    {
+        "id": 23,
+        "nome": "Iso",
+        "role": "Duelista",
+        "img": "<:iso:1368780947687739454>"
+    },
+
+    {
+        "id": 24,
+        "nome": "Clove",
+        "role": "Controlador",
+        "img": "<:clove:1368780864846037105>"
+    },
+
+    {
+        "id": 25,
+        "nome": "Vyse",
+        "role": "Sentinela",
+        "img": "<:vyse:1368781113966723073>"
+    },
+
+    {
+        "id": 26,
+        "nome": "Tejo",
+        "role": "Iniciador",
+        "img": "<:tejo:1368781100306010152>"
+    },
+
+    {
+        "id": 27,
+        "nome": "Waylay",
+        "role": "Duelista",
+        "img": "<:waylay:1368781143092101304>"
+    },
+
+    {
+        "id": 28,
+        "nome": "Veto",
+        "role": "Sentinela",
+        "img": "<:veto:1459050122947330202>"
+    }
+
+]

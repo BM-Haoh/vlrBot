@@ -1,0 +1,12 @@
+# --- Segurança e Logs ---
+.env
+*.log
+discord.log
+
+# --- Python e ambientes ---
+venv/
+__pycache__/
+*.py[cod]
+
+# --- Notebooks ---
+.ipynb_checkpoints/

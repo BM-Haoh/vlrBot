@@ -1,0 +1,61 @@
+[
+    {
+        "id": 1,
+        "nome": "Bind"
+    },
+    
+    {
+        "id": 2,
+        "nome": "Abyss"
+    },
+    
+    {
+        "id": 3,
+        "nome": "Fracture"
+    },
+    
+    {
+        "id": 4,
+        "nome": "Haven"
+    },
+    
+    {
+        "id": 5,
+        "nome": "Split"
+    },
+    
+    {
+        "id": 6,
+        "nome": "Lotus"
+    },
+    
+    {
+        "id": 7,
+        "nome": "Pearl"
+    },
+    
+    {
+        "id": 8,
+        "nome": "Ascent"
+    },
+    
+    {
+        "id": 9,
+        "nome": "Breeze"
+    },
+    
+    {
+        "id": 10,
+        "nome": "Sunset"
+    },
+    
+    {
+        "id": 11,
+        "nome": "Icebox"
+    },
+    
+    {
+        "id": 12,
+        "nome": "Corrode"
+    }
+]

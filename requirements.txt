@@ -1,0 +1,11 @@
+# Automação e Raspagem
+selenium
+pandas
+tqdm
+
+# Integração com Discord
+discord.py
+python-dotenv
+
+# Driver de Banco de Dados (Já adicionei para a v2.0)
+psycopg[binary]
