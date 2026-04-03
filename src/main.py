@@ -10,7 +10,7 @@ import disc_buttons
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
-filename = str(os.path.join("VLRBOT", "discord.log"))
+filename = str(os.path.join("discord.log"))
 
 handler = logging.FileHandler(filename=filename, encoding='utf-8', mode='w')
 intents = discord.Intents.default()
@@ -20,10 +20,10 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # SERVER DE ALTERAÇÃO DE ARQUIVOS
-GUILD_ID_JSON = discord.Object(id=477253210717814804)
+GUILD_ID_JSON = discord.Object(id=int(os.getenv('GUILD_ID_JSON')))
 # SERVER DE USO DE COMANDOS VISUAIS
-GUILD_ID_INFO = discord.Object(id=1368770575098449951)
-CREATOR_ID = 580541885555408899
+GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID_INFO')))
+CREATOR_ID = int(os.getenv('CREATOR_ID'))
 
 Regiao = ''
 

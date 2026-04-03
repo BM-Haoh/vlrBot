@@ -1,7 +1,7 @@
 import json
 import os
 
-DIRETORIO_DADOS = os.path.join("VLRBOT", "botAPI")
+DIRETORIO_DADOS = os.path.join("botAPI")
 ARQUIVO_INDICE= "indice.json"
 
 def carregar_indice(IND = ARQUIVO_INDICE):
