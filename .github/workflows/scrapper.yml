@@ -28,4 +28,4 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          python auto_scrapper.py
+          python src/auto_scrapper.py
