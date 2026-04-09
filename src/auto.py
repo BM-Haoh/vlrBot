@@ -422,7 +422,7 @@ class vlr_stealer():
             )
 
         id = self.__get_id()
-        print([self.teams[times[0]], self.teams[times[1]]])
+
         # Dict formatted to be stored
         return {
             'id': int(id),
