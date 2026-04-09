@@ -55,8 +55,8 @@ class DB_handler:
                         for mapa in p['mapas']:
    
                             # No seu JSON: composicoes[0] é o Time A, composicoes[1] é o Time B
-                            id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0])
-                            id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1])
+                            id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0], cur)
+                            id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1], cur)
 
                             id_mapa = self.map_dict.get(mapa['nome'].lower().strip())
                             # 3. Inserir o Mapa jogado, associando à partida e às composições
