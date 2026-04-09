@@ -44,7 +44,7 @@ class DB_handler:
 
                         # 1. Inserir/Atualizar a Partida
                         cur.execute("""
-                            INSERT INTO partidas (id, camp_id, timeA_id, timeB_id, pickban_log, vencedor_time_letra)
+                            INSERT INTO partidas (id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra)
                             VALUES (%s, %s, %s, %s, %s, %s)
                             ON CONFLICT (id) DO UPDATE SET 
                                 camp_id = EXCLUDED.camp_id,
