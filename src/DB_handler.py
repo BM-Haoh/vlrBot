@@ -87,7 +87,7 @@ class DB_handler:
         with self.__get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id, tag FROM times")
-                return {tag.lower(): int(id) for id, tag in cur.fetchall()}
+                return {tag: int(id) for id, tag in cur.fetchall()}
             
     def __get_or_create_comp(self, agents_names, cur):
         agents_ids = [self.agent_dict.get(name.lower().strip()) for name in agents_names]
