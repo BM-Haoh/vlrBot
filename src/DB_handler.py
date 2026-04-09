@@ -80,13 +80,13 @@ class DB_handler:
     def __load_id_agents(self):
         with self.__get_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, nome FROM agentes_lista")
+                cur.execute("SELECT id, nome FROM agentes")
                 return {nome.lower(): int(id) for id, nome in cur.fetchall()}
             
     def __load_id_times(self):
         with self.__get_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, tag FROM times_lista")
+                cur.execute("SELECT id, tag FROM times")
                 return {tag.lower(): int(id) for id, tag in cur.fetchall()}
             
     def __get_or_create_comp(self, agents_names, cur):
