@@ -1,6 +1,5 @@
 import pandas as pd
 from tqdm import tqdm
-from time import sleep
 import new_api_handler as nah
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -69,7 +68,7 @@ team_dict ={
     "Rex Regum Qeon": "RRQ"
 }
 
-def abrir_site(link):
+def abrir_site(link=None):
     '''
     ## Functions that opens the browser and a match game
     
@@ -86,8 +85,8 @@ def abrir_site(link):
     # options = webdriver.ChromeOptions()
     # options.add_argument('--headless')
     navegador = webdriver.Chrome(options=chrome_options)
-
-    navegador.get(link)
+    if link:
+        navegador.get(link)
 
     return navegador
 
@@ -136,7 +135,11 @@ def get_pickban(navegador):
     :return bans: list of tuples (ex: [(team, map)]) of banned maps
     :return picks: list of tuples (ex: [(team, map)]) of picked maps + decider ('', map)
     '''
-    pickban = navegador.find_element(By.CLASS_NAME, 'match-header-note').text
+    pickban = navegador.find_elements(By.CLASS_NAME, 'match-header-note')
+    if len(pickban) == 2:
+        pickban = pickban[1].text
+    else:
+        pickban = pickban[0].text
     new_pb = pickban.split('; ')
     lista_maps = []
     lista_bans = []
@@ -406,9 +409,7 @@ class vlr_stealer():
             # Oppening map inside the page
             next_map(self.browser, maps_btns, picks, map_pointer, self.current_url)
             map_pointer += 1
-
             atk, rnd_sqc = map_treatment(self.browser, map[1])
-
             # Info of each mpa in a match
             map_infos.append(
                 {
@@ -680,7 +681,7 @@ if __name__ == "__main__":
     linkCH = 'https://www.vlr.gg/event/2685/vct-2026-china-kickoff'
     linkAP = 'https://www.vlr.gg/event/2683/vct-2026-pacific-kickoff'
     linkMA = 'https://www.vlr.gg/event/2760/valorant-masters-santiago-2026'
-    mtc_gtr = vlr_stealer(linkAM)
+    mtc_gtr = vlr_stealer()
     
     # for camp in [linkAM, linkEM, linkCH, linkAP, linkMA]:
     #     json = mtc_gtr.process_camp(camp)
