@@ -16,7 +16,7 @@ class DB_handler:
         self.teams_dict = self.__load_id_times()
 
     def process_matches(self):
-        try:
+        #try:
             with self.__get_conn() as conn:
                 with conn.cursor() as cur:
                     for p in self.matches:
@@ -58,7 +58,7 @@ class DB_handler:
                             id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0], cur)
                             id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1], cur)
 
-                            id_mapa = self.map_dict.get(mapa['nome'].lower().strip())
+                            id_mapa = self.map_dict.get(mapa['id'].lower().strip())
                             # 3. Inserir o Mapa jogado, associando à partida e às composições
                             # Note: 'atk' no seu JSON vira 'atk_start' no banco
                             cur.execute("""
@@ -68,8 +68,8 @@ class DB_handler:
 
                     conn.commit()
 
-        except Exception as e:
-            print(f"Erro durante a migração: {e}")
+        # except Exception as e:
+        #     print(f"Erro durante a migração: {e}")
 
     def __load_id_maps(self):
         with self.__get_conn() as conn:
