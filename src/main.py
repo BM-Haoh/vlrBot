@@ -132,7 +132,6 @@ async def printer(interaction: discord.Interaction, time: str):
         matches = nah.get_dados(indice, "partidas")
         matches_decript = ""
 
-
         for match in partidas:
             timeAB = matches[match - 1].get('timeA/B')[:]
             a = 0

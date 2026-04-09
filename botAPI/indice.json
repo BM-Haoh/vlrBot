@@ -5,7 +5,7 @@
     },
 
     "partidas": {
-        "path": "new_partidas.json",
+        "path": "partidas.json",
         "descricao": "Caminho para todas as partidas registradas"
     },
 

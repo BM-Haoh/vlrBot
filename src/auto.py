@@ -4,8 +4,11 @@ from time import sleep
 import new_api_handler as nah
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
+
+import psycopg
+import os
+from dotenv import load_dotenv
 
 team_dict ={
     # Americas
@@ -35,6 +38,7 @@ team_dict ={
     "Team Heretics": "TH",
     "GIANTX": "GX",
     "Team Liquid": "TL",
+    "Eternal Fire": "EF",
     
     # China
     "Trace Esports": "TE",
@@ -60,7 +64,7 @@ team_dict ={
     "DetonatioN FocusMe": "DFM",
     "Gen.G": "GEN",
     "T1": "T1",
-    "DRX": "DRX",
+    "KIWOOM DRX": "DRX",
     "Paper Rex": "PRX",
     "Rex Regum Qeon": "RRQ"
 }
@@ -72,7 +76,17 @@ def abrir_site(link):
     :param link: vlr.gg link for the match
     :return: browser object
     '''
-    navegador = webdriver.Chrome()
+    chrome_options = Options()
+    # Em vez de apenas "--headless", use:
+    chrome_options.add_argument("--headless=new") 
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--window-size=1920,1080")
+
+    # options = webdriver.ChromeOptions()
+    # options.add_argument('--headless')
+    navegador = webdriver.Chrome(options=chrome_options)
+
     navegador.get(link)
 
     return navegador
@@ -95,7 +109,8 @@ def get_times(navegador):
     :return TeamB:  team B str name
     '''
     times = navegador.find_elements(By.CLASS_NAME, 'wf-title-med')
-    return times[0].text, times[1].text
+    times = [time.text.split("\n")[0] for time in times]
+    return times
 
 def get_placar(navegador):
     '''
@@ -149,13 +164,14 @@ def get_map_objects(navegador, picks):
     :return dict_maps: dict_maps[picks[map_pointer]].click() ---> access map
     '''
     mapas = navegador.find_elements(By.CLASS_NAME, 'js-map-switch')
+    mapas = [mapa.get_attribute('data-game-id') for mapa in mapas]
     dict_maps = {}
     for i, item in enumerate(picks):
         dict_maps[item[1]] = mapas[i+1]
 
     return 0, dict_maps
 
-def next_map(dict_maps, picks, map_pointer):
+def next_map(navegador, dict_maps, picks, map_pointer, current_url):
     '''
     ## Change the map to the indexed at map_pointer
     
@@ -163,7 +179,8 @@ def next_map(dict_maps, picks, map_pointer):
     :param picks: list of maps piccked
     :param map_pointer: integer
     '''
-    dict_maps[picks[map_pointer][1]].click()
+    id = dict_maps[picks[map_pointer][1]]
+    navegador.get(f"{current_url}/?game={id}&tab=overview")
 
 def get_agents_completed(navegador):
     '''
@@ -277,12 +294,12 @@ class vlr_stealer():
     :param link: string with a vlr.gg tournament page link
     :param team_dict: (optional - one is already loadded) dictionary used to translate teams names into teams tags
     '''
-    def __init__(self, link, team_dict=team_dict):
+    def __init__(self, link=None, team_dict=team_dict):
         self.browser = abrir_site(link)
         self.teams = team_dict
-        self.main_win = self.browser.window_handles[0]
         self.camp = ''
         self.matches = []
+        self.current_url = ""
 
     def process_camp(self, link=None):
         '''
@@ -297,20 +314,68 @@ class vlr_stealer():
         self.matches.reverse()
         return self.__game_catalog()
 
-    def match_info(self, link=None):
+    def process_camps(self):
+        '''
+        getting incompleted tournaments then processing their information
+        
+        '''
+        
+        load_dotenv()
+        DB_URL = os.getenv("DATABASE_URL")
+
+        def get_conn():
+            return psycopg.connect(DB_URL)
+        
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT url, id FROM campeonatos WHERE completo = FALSE")
+                camps = cur.fetchall()
+                matches = []
+                for camp in camps:
+                    completed = self.__is_completed(camp[0])
+                    self.camp = camp[1]
+                    self.matches = self.__get_games()
+                    self.matches.reverse()
+                    matches.extend(self.__game_catalog())
+
+                    
+                    if completed:
+                        cur.execute("UPDATE campeonatos SET completo = TRUE WHERE id = %s", (self.camp,))
+                        conn.commit()      
+                
+                return matches
+
+    def __is_completed(self, url):
+        '''
+        process the tournament page to check if it is completed or not. It is completed if there are no upcoming matches in the tournament page.
+        :param url: tournament page link
+        :return: boolean. True if there are no upcoming matches, False otherwise
+        '''
+        self.browser.get(url)
+        nav_itens = self.browser.find_elements(By.CLASS_NAME, 'wf-nav-item')
+        for item in nav_itens:
+            if 'matches' in item.get_attribute("href"):
+                self.browser.get(item.get_attribute("href"))
+                break
+
+        if len(self.browser.find_element(By.CLASS_NAME, 'wf-subnav') \
+                .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
+            # Stage category identified, changing the option of it to "All"
+            self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
+
+        # Status is "All" by default (in the website). We are changing it to Upcoming
+        self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Upcoming').get_attribute('href'))
+
+        ongoing = self.browser.find_elements(By.CLASS_NAME, 'match-item')
+        self.browser.get(url)
+        return len(ongoing) == 0
+
+    def match_info(self):
         '''
         processing match information
         
         :param link: optional parameter: change match.
         '''
-        # if optional link is given, change the page to it
-        if link:
-            opening_url = self.browser.current_url
-            self.browser.get(link)
-            self.camp = self.browser.find_element(By.CLASS_NAME, 'match-header-super') \
-                                    .find_element(By.TAG_NAME, 'a') \
-                                    .find_element(By.TAG_NAME, 'div') \
-                                    .find_element(By.TAG_NAME, 'div').text
         
         # Getting the match scoreboard
         placar = get_placar(self.browser).split(' : ')
@@ -322,7 +387,6 @@ class vlr_stealer():
             # It will ignore games of teams not registered
         for time in times:
             if not (self.teams.get(time)):
-                print(times)
                 return
 
         # Getting the pick/ban
@@ -340,7 +404,7 @@ class vlr_stealer():
         end = int(placar[0]) + int(placar[1])
         for i, map in enumerate(picks[:end]):
             # Oppening map inside the page
-            next_map(maps_btns, picks, map_pointer)
+            next_map(self.browser, maps_btns, picks, map_pointer, self.current_url)
             map_pointer += 1
 
             atk, rnd_sqc = map_treatment(self.browser, map[1])
@@ -358,19 +422,15 @@ class vlr_stealer():
 
         id = self.__get_id()
 
-        # if optional link, return to the tournament page which it was before
-        if link:
-            self.browser.get(opening_url)
-
         # Dict formatted to be stored
-        return [{
-            'id': id,
+        return {
+            'id': int(id),
             'camp': self.camp,
             'times': [self.teams[times[0]], self.teams[times[1]]],
             'mapas': map_infos[:],
             'pickban': pickban,
             'winner': "A" if placar[0] > placar[1] else "B"
-        }]
+        }
 
     def __get_id(self, link=None):
         if link:
@@ -407,7 +467,7 @@ class vlr_stealer():
         nav_itens = self.browser.find_elements(By.CLASS_NAME, 'wf-nav-item')
         for item in nav_itens:
             if 'matches' in item.get_attribute("href"):
-                item.click()
+                self.browser.get(item.get_attribute("href"))
                 break
         
         # All the tournament matches pages have Status category. Some have Stage.
@@ -417,12 +477,28 @@ class vlr_stealer():
         if len(self.browser.find_element(By.CLASS_NAME, 'wf-subnav') \
                            .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
             # Stage category identified, changing the option of it to "All"
-            self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').click()
+            self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
 
         # Status is "All" by default (in the website). We are changing it to completed
-        self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Completed').click()
-        
-        return self.browser.find_elements(By.CLASS_NAME, 'match-item')
+        self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Completed').get_attribute('href'))
+
+        load_dotenv()
+        DB_URL = os.getenv("DATABASE_URL")
+
+        def get_conn():
+            return psycopg.connect(DB_URL)
+
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM partidas WHERE camp_id = %s", (self.camp,))
+                registered_matches = [str(r[0]) for r in cur.fetchall()]
+                matches = []
+                for match in self.browser.find_elements(By.CLASS_NAME, 'match-item'):
+                    if match.get_attribute("href").split('/')[3] in registered_matches:
+                        continue
+                    matches.append(match.get_attribute("href"))
+                
+                return matches
     
     def __game_catalog(self):
         '''
@@ -435,28 +511,15 @@ class vlr_stealer():
             # Progress bar
             pbar.update()
 
-            # Open the match in another window
-            ActionChains(self.browser) \
-                .key_down(Keys.CONTROL) \
-                .click(match) \
-                .key_up(Keys.CONTROL) \
-                .perform()
-            
-            # waiting to load, then changing windows
-            sleep(.5)
-            sec_win = self.browser.window_handles[1]
-            self.browser.switch_to.window(sec_win)
+            self.browser.get(match)
 
-            # Getting the match storable dict(info) and appending it to the returnable result
-            sleep(.5)
-            info = self.match_info()[0]
+            self.current_url = self.browser.current_url
+
+            info = self.match_info()
+
             # If teams not registered, match_info returns Null, and that game is not considered
             if info:
                 games.append(info)
-            
-            # Closing the window and returning to the main one
-            self.browser.close()
-            self.browser.switch_to.window(self.main_win)
         
         return games
 
@@ -523,7 +586,7 @@ class vlr_stealer():
         nav_itens = self.browser.find_elements(By.CLASS_NAME, 'wf-nav-item')
         for item in nav_itens:
             if 'stats' in item.get_attribute('href'):
-                item.click()
+                self.browser.get(item.get_attribute('href'))
                 break
         
         # Creating an array with all the columns names
@@ -619,12 +682,13 @@ if __name__ == "__main__":
     linkMA = 'https://www.vlr.gg/event/2760/valorant-masters-santiago-2026'
     mtc_gtr = vlr_stealer(linkAM)
     
-    for camp in [linkAM, linkEM, linkCH, linkAP, linkMA]:
-        json = mtc_gtr.process_camp(camp)
-        api_handler = nah.handler(json)
-        api_handler.add_partidas()
+    # for camp in [linkAM, linkEM, linkCH, linkAP, linkMA]:
+    #     json = mtc_gtr.process_camp(camp)
+    #     api_handler = nah.handler(json)
+    #     api_handler.add_partidas()
 
-    # json = mtc_gtr.match_info('https://www.vlr.gg/596399/envy-vs-evil-geniuses-vct-2026-americas-kickoff-ur1')
+    json = mtc_gtr.process_camps()
+    print(json)
     # api_handler = nah.handler(json)
     # api_handler.add_partidas()
     
