@@ -1,0 +1,31 @@
+name: VLR Daily Scraper
+
+on:
+  schedule:
+    # 06:00 AM UTC (Aproximadamente 03:00 no Brasil)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
+
+jobs:
+  scrape_and_update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # Otimiza o tempo de instalação
+
+      - name: Instalar Dependências
+        run: |
+          pip install -r requirements.txt
+
+      - name: Rodar o Scraper e Atualizar DB
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python auto_scrapper.py
