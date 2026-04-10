@@ -1,9 +1,10 @@
+from datetime import time, timezone
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from discord.ext import tasks
 import disc_buttons
-import datetime
+import asyncio
 import psycopg
 import discord
 import logging 
@@ -28,6 +29,19 @@ GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID_INFO')))
 CREATOR_ID = int(os.getenv('CREATOR_ID'))
 DB_URL = os.getenv("DATABASE_URL")
 
+# setting auto_reload time to 6:10 UTC, which is 3:10 in Brazil, right after the VLR updates their database with the new matches of the day
+target_time = time(hour=6, minute=10, tzinfo=timezone.utc)
+
+# Inicializando globais
+times = []
+maps = {}
+agents = {}
+comps = {}
+camps = {}
+partidas = []
+mapas_jogados = []
+
+players = {} # unused
 
 # DB functions
 def get_conn():
@@ -37,45 +51,67 @@ def load_id_times():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, tag, emoji, regiao, nome, img_url FROM times WHERE id != 0 ORDER BY regiao, tag")
-            return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
+    return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
 
 def load_id_maps():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
-            return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
+    return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
         
 def load_id_agents():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome, emoji_discord FROM agentes")
-            return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
+    return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
 
 def load_id_comps():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, agente1, agente2, agente3, agente4, agente5 FROM composicoes")
-            return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
+    return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
         
 def load_id_camps():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome FROM times")
-            return {int(id): nome for id, nome in cur.fetchall()}
+    return {int(id): nome for id, nome in cur.fetchall()}
 
+def load_id_partidas():
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas")
+            partidas_cache = [
+                {"id": int(r[0]), "camp_id": int(r[1]), "timea_id": int(r[2]), "timeb_id": int(r[3]), "vencedor": r[4], "pickban": json.loads(r[5])} 
+                for r in cur.fetchall()
+            ] 
+    return partidas_cache
 
+def load_id_mapas_jogados():
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados")
+            mapas_jogados_cache = [
+                {
+                    "id": r[0], "partida_id": r[1], "mapa_id": r[2], 
+                    "vencedor": r[3], "rounds": r[4], "atk_start": r[5],
+                    "comp_a": r[6], "comp_b": r[7]
+                }
+                for r in cur.fetchall()
+            ]
+    return mapas_jogados_cache
 
-# Loading
-times = load_id_times()
-maps = load_id_maps()
-agents = load_id_agents()
-comps = load_id_comps()
-camps = load_id_camps()
+def perform_global_reload():
+    global times, maps, agents, comps, camps, partidas, mapas_jogados
+    times = load_id_times()
+    maps = load_id_maps()
+    agents = load_id_agents()
+    comps = load_id_comps()
+    camps = load_id_camps()
+    partidas = load_id_partidas()
+    mapas_jogados = load_id_mapas_jogados()    
 
-
-players = {}
-# Events       
-
+# Events
 @bot.event
 async def on_ready():
     print(f"We are ready to go in, {bot.user.name}")
@@ -103,6 +139,30 @@ async def on_message(message):
 
 # COMANDOS
 '''
+                                            INFO_LOADERS 
+'''
+
+@bot.tree.command(name="update_cache", description="Força o reload dos dados")
+async def update_cache(interaction: discord.Interaction):
+    if interaction.user.id != CREATOR_ID:
+        return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
+    
+    await interaction.response.defer(ephemeral=True) # Resposta visível só para você
+    
+    # Usamos o to_thread para o bot não travar enquanto o banco responde
+    await asyncio.to_thread(perform_global_reload)
+    
+    await interaction.edit_original_response(content="Cache atualizado com sucesso!", ephemeral=True)
+
+@tasks.loop(time=target_time)
+async def auto_reload_db():
+    print("Executando reload agendado pós-GitHub Actions...")
+    await asyncio.to_thread(perform_global_reload)
+
+
+    print("Banco recarregado automaticamente após atualização do GitHub.")
+
+'''
                                             CRIAÇÃO DE INFORMAÇÃO 
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time", guild=GUILD_ID_INFO)
@@ -121,29 +181,6 @@ async def auxilio(interaction: discord.Interaction):
         answer += f"{team['emoji']} {team['tag']}, "
         pre_region = team["regiao"]    
     await interaction.response.send_message(f"Times disponíveis para info_time: {answer}", ephemeral=False)
-
-@bot.tree.command(name="update_cache", description="Recarrega o cache de times, mapas, agentes e composições")
-async def update_cache(interaction: discord.Interaction):
-    if interaction.user.id != CREATOR_ID:
-        return await interaction.response.send_message("Sem permissão.")
-    
-    await interaction.response.defer()
-    # Recarrega as globais
-    global times, maps, agents, comps, camps
-    times = load_id_times()
-    maps = load_id_maps()
-    agents = load_id_agents()
-    comps = load_id_comps()
-    camps = load_id_camps()
-
-    await interaction.edit_original_response(content="Cache atualizado com sucesso!")
-
-@tasks.loop(time=datetime.time(hour=3, minute=10))
-async def auto_reload_db():
-    global times, maps
-    times = load_id_times()
-    maps = load_id_maps()
-    print("Banco recarregado automaticamente após atualização do GitHub.")
 
 @bot.tree.command(name="info_time", description="Informação sobre um time", guild=GUILD_ID_INFO)
 async def printer(interaction: discord.Interaction, time_query: str):
