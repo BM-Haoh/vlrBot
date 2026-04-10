@@ -1,4 +1,4 @@
-'''team_dict ={
+team_dict ={
     # Americas
     'G2 Esports': 'G2',
     'KRÜ Esports': 'KRÜ',
@@ -53,30 +53,9 @@
     "T1": "T1",
     "DRX": "DRX",
     "Paper Rex": "PRX",
-    "Rex Regum Qeon": "RRQ"
+    "Rex Regum Qeon": "RRQ",
+    "dicio": {"oi": "oi", "tchau": "tchau"}
 }
 
-ot= "ababababa"
-
-for i, c in enumerate(ot):
-    print(i, c)'''
-
-import psycopg
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # Tente conectar assim:
-try:
-    conn = psycopg.connect(os.getenv("DATABASE_URL"))
-    print("Conexão estabelecida com sucesso!")
-    
-    # Teste rápido de query
-    with conn.cursor() as cur:
-        cur.execute("SELECT 1;")
-        print("Resposta do Banco:", cur.fetchone())
-        
-    conn.close()
-except Exception as e:
-    print(f"Erro ao conectar: {e}")
+print(team_dict.items())
