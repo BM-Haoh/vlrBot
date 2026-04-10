@@ -22,10 +22,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# SERVER DE ALTERAÇÃO DE ARQUIVOS
-GUILD_ID_JSON = discord.Object(id=int(os.getenv('GUILD_ID_JSON')))
 # SERVER DE USO DE COMANDOS VISUAIS
-GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID_INFO')))
+GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID')))
 CREATOR_ID = int(os.getenv('CREATOR_ID'))
 DB_URL = os.getenv("DATABASE_URL")
 
@@ -120,13 +118,10 @@ async def on_ready():
     perform_global_reload() # Carrega os dados do banco para a RAM quando o bot inicia
 
     try:
-        guild = discord.Object(id=477253210717814804)
+
+        guild = GUILD_ID_INFO
         synced = await bot.tree.sync(guild=guild)
         print(f'Synced {len(synced)} commands to guild {guild.id}')
-
-        guild2 = discord.Object(id=1368770575098449951)
-        synced = await bot.tree.sync(guild=guild2)
-        print(f'Synced {len(synced)} commands to guild {guild2.id}')
 
     except Exception as e:
         print(f'Error syncing commands: {e}')
