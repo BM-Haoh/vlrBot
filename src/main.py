@@ -51,38 +51,38 @@ def load_id_times():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, tag, emoji, regiao, nome, img_url FROM times WHERE id != 0 ORDER BY regiao, tag")
-    return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
+            return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
 
 def load_id_maps():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
-    return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
+            return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
         
 def load_id_agents():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, nome, emoji_discord FROM agentes")
-    return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
+            return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
 
 def load_id_comps():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, agente1, agente2, agente3, agente4, agente5 FROM composicoes")
-    return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
+            return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
         
 def load_id_camps():
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, nome FROM times")
-    return {int(id): nome for id, nome in cur.fetchall()}
+            cur.execute("SELECT id, nome FROM campeonatos")
+            return {int(id): nome for id, nome in cur.fetchall()}
 
 def load_id_partidas():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas")
             partidas_cache = [
-                {"id": int(r[0]), "camp_id": int(r[1]), "timea_id": int(r[2]), "timeb_id": int(r[3]), "vencedor": r[4], "pickban": json.loads(r[5])} 
+                {"id": r[0], "camp_id": camps.get(r[1]), "timeA/B": [r[2], r[3]], "vencedor_time_letra": r[4], "pickban": json.loads(r[5])} 
                 for r in cur.fetchall()
             ] 
     return partidas_cache
@@ -93,15 +93,16 @@ def load_id_mapas_jogados():
             cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados")
             mapas_jogados_cache = [
                 {
-                    "id": r[0], "partida_id": r[1], "mapa_id": r[2], 
-                    "vencedor": r[3], "rounds": r[4], "atk_start": r[5],
-                    "comp_a": r[6], "comp_b": r[7]
+                    "id": r[0], "partida_id": r[1],"id_mapa": r[2], "nome": maps[r[2]]["nome"], 
+                    "win": r[3], "rounds": r[4], "atk_start": r[5],
+                    "comps": [comps.get(r[6]), comps.get(r[7])]
                 }
                 for r in cur.fetchall()
             ]
     return mapas_jogados_cache
 
 def perform_global_reload():
+    print("Recarregando dados do banco para a RAM...")
     global times, maps, agents, comps, camps, partidas, mapas_jogados
     times = load_id_times()
     maps = load_id_maps()
@@ -110,12 +111,13 @@ def perform_global_reload():
     camps = load_id_camps()
     partidas = load_id_partidas()
     mapas_jogados = load_id_mapas_jogados()    
+    print("Dados recarregados com sucesso!")
 
 # Events
 @bot.event
 async def on_ready():
     print(f"We are ready to go in, {bot.user.name}")
-    auto_reload_db.start()
+    perform_global_reload() # Carrega os dados do banco para a RAM quando o bot inicia
 
     try:
         guild = discord.Object(id=477253210717814804)
@@ -219,71 +221,64 @@ async def printer(interaction: discord.Interaction, time_query: str):
 
         embed.set_thumbnail(url=time.get("img_url"))
 
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra FROM partidas WHERE timea_id = %s OR timeb_id = %s ORDER BY id",
-                             (time.get("id"), time.get("id")))
-                all_matches = [
-                        {"id": id, 
-                        "camp": camps.get(camp_id), 
-                        "timeA/B": [timea_id, timeb_id], 
-                        "pickban_log": pickban_log, 
-                        "vencedor_time_letra": vencedor_time_letra
-                        } for id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra in cur.fetchall()
-                    ]
+        # Pegamos o ID do time que você já encontrou na busca por nome/tag
+        time_id = time.get("id")
 
-        partidas = all_matches[-5:]
+        # Filtramos a lista 'partidas' (que já está na RAM) 
+        # Substitui o SELECT ... WHERE timea_id = %s OR timeb_id = %s
+        all_matches = [ p for p in partidas if time_id in p["timeA/B"] ]
+
+        # (Opcional) Como o SQL tinha um ORDER BY id, garantimos que a lista esteja ordenada
+        all_matches.sort(key=lambda x: x["id"])
+
+        team_partidas5 = all_matches[-5:]
+
+        # 2. Cria a lista de IDs para o próximo filtro
+        # (Dica: usamos 'set' aqui para a busca ser instantânea no próximo passo)
+        ids_partidas_filtradas = {p["id"] for p in all_matches}
+        ids_ultimas_5 = {p["id"] for p in team_partidas5}
+
+        # 3. Filtra os mapas dessas partidas (o "Funil" nível 2)
+        # Em vez de ir no banco, ele varre a lista que já está na RAM
+        all_mapas = []
+        mapas_5 = {}
+        for m in mapas_jogados:
+            p_id = m["partida_id"]
+            if p_id in ids_partidas_filtradas:
+                all_mapas.append(m)
+            if p_id in ids_ultimas_5:
+                if p_id not in mapas_5:
+                    mapas_5[p_id] = []
+                mapas_5[p_id].append({"win": m["win"]})
+
         matches_decript = ""
 
-        for match in partidas:
-            timeAB = match.get("timeA/B")[:]
+        emoji_map = {t['id']: t['emoji'] for t in times}
+
+        for match in team_partidas5:
+            timeAB = match["timeA/B"][:]
             a = 0
             b = 0
-            for team in times:
-                if team.get('id') == timeAB[0]:
-                    timeAB[0] = team.get("emoji")
-                elif team.get('id') == timeAB[1]:
-                    timeAB[1] = team.get("emoji")
+            emoji_a = emoji_map.get(timeAB[0], "❓") 
+            emoji_b = emoji_map.get(timeAB[1], "❓")
 
-            with get_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT id, vencedor_mapa FROM mapas_jogados WHERE partida_id = %s ORDER BY id", (match.get("id"),))
-                    all_mapas = [
-                            { 
-                            "win": vencedor_mapa
-                            } for id, vencedor_mapa in cur.fetchall()
-                        ]
+            mapas_da_partida = mapas_5.get(match["id"], [])
+    
+            # Conta vitórias de A e B de forma elegante
+            vitorias_lista = [m["win"] for m in mapas_da_partida]
+            a = vitorias_lista.count("A")
+            b = vitorias_lista.count("B")
 
-            for mapa in all_mapas:
-                if mapa.get("win") == "A":
-                    a += 1
-                else:
-                    b += 1
-
-            matches_decript += match.get("camp") + ":  " + timeAB[0] + f" {a}X{b} " + timeAB[1] + "\n"
+            matches_decript += f"{match['camp_id']}: {emoji_a} {a}X{b} {emoji_b}\n"
 
         embed.add_field(name="Partidas", value=f"{matches_decript}", inline=False)
 
-        print("OLÁ")
-
         # Setting the footer
         embed.set_footer(text="Informações tiradas do VLR.")
-        
+
         #   CRIANDO EMBED PÁGINA 2 
-        with get_conn() as conn:
-            with conn.cursor() as cur:  
-                cur.execute("SELECT mapa_id, atk_start, compa_id, compb_id, rounds_string, vencedor_mapa FROM mapas_jogados WHERE timea_id = %s OR timeb_id = %s ORDER BY id",
-                             (time.get("id"), time.get("id")))
-                all_mapas = [
-                        {"id": maps[mapa_id]["nome"], 
-                         "atk_start": atk_start, 
-                         "comps": [comps.get(compa_id), comps.get(compb_id)], 
-                         "rounds": rounds_string, 
-                         "vencedor_mapa": vencedor_mapa
-                        } for mapa_id, atk_start, compa_id, compb_id, rounds_string, vencedor_mapa in cur.fetchall()
-                    ]
                 
-        pool = [{id: mapa, "nome": maps[mapa]["nome"]} for mapa in maps if maps[mapa]["in_pool"]]
+        pool = [{"id": mapa, "nome": maps[mapa]["nome"]} for mapa in maps if maps[mapa]["in_pool"]]
         team_maps = {
             m_id: {
                 **m_info,
@@ -294,73 +289,60 @@ async def printer(interaction: discord.Interaction, time_query: str):
             for m_id, m_info in maps.items()
         }
 
-        for match in all_matches:
-            i = match["timeA/B"].index(time.get("id"))
+        papel_na_partida = {m["id"]: ("A" if m["timeA/B"][0] == time.get("id") else "B") for m in all_matches}
 
-            for mapa in all_mapas:
-                if i == 0:
-                    ab = "A"
-                else:
-                    ab = "B"
+        for mapa in all_mapas:
+            p_id = mapa["partida_id"]
 
-                if mapa.get("atk_start") == ab:
-                    starts = "atk"
-                else:
-                    starts = "def"
+            ab = papel_na_partida[p_id]
+            i = 0 if ab == "A" else 1
 
-                total_rounds = mapa.get("rounds")
-                X_count = total_rounds.count("X")
+            starts = "atk" if mapa["atk_start"] == ab else "def"
+            total_rounds = mapa.get("rounds")
+            partes = total_rounds.split("X")
 
-                if X_count == 1:
-                    half1, half2 = total_rounds.split("X")
-                    ot = ""
-                elif X_count == 2:
-                    half1, half2, ot = total_rounds.split("X")
+            half1, half2 = partes[0], partes[1]
+            ot = partes[2] if len(partes) > 2 else ""
 
-                otATK = 0
-                otDEF = 0
-
+            otATK, otDEF = 0, 0
+            if ot:
                 for j, c in enumerate(ot):
                     if c == ab:
-                        if j % 2 == 0:
-                            if starts == "atk":
-                                otATK += 1
-                            else:
-                                otDEF += 1
+                        # Lógica de inversão de lados no OT
+                        if (j % 2 == 0 and starts == "atk") or (j % 2 != 0 and starts == "def"):
+                            otATK += 1
                         else:
-                            if starts == "atk":
-                                otDEF += 1
-                            else:
-                                otATK += 1
+                            otDEF += 1
 
-                if starts == "atk":
-                    atk_def = f"{half1.count(ab) + otATK}_{half2.count(ab) + otDEF}_{len(half1) + len(ot)//2}_{len(half2) + len(ot)//2}"
-                else:
-                    atk_def = f"{half2.count(ab) + otATK}_{half1.count(ab) + otDEF}_{len(half2) + len(ot)//2}_{len(half1) + len(ot)//2}"
+            if starts == "atk":
+                atk_def = f"{half1.count(ab) + otATK}_{half2.count(ab) + otDEF}_{len(half1) + len(ot)//2}_{len(half2) + len(ot)//2}"
+            else:
+                atk_def = f"{half2.count(ab) + otATK}_{half1.count(ab) + otDEF}_{len(half2) + len(ot)//2}_{len(half1) + len(ot)//2}"
 
-                if mapa.get('comps')[i] not in team_maps[mapa["id"]]["comps"]:
-                    team_maps[mapa.get("id")]["comps"].append(mapa.get("comps")[i])
-                    team_maps[mapa.get("id")]["atk_def/rounds"].append(atk_def)
+            # salvando no team_maps para usar na construção do embed depois
+            m_id = mapa["id_mapa"] # ID numérico do mapa (Ex: 1 para Bind)
+            target = team_maps[m_id]
+            minha_comp = mapa["comps"][i]
 
-                    if mapa.get("win") == ["A", "B"][i]:
-                        team_maps[mapa.get("id")]["Win/game"].append(f'1/1')
-                    else:
-                        team_maps[mapa.get("id")]["Win/game"].append(f'0/1')
-                
-                else:
-                    index = team_maps[mapa.get('id')]["comps"].index(mapa.get('comps')[i])
+            
+            if minha_comp not in target["comps"]:
+                target["comps"].append(minha_comp)
+                target["atk_def/rounds"].append(atk_def)
+                win_val = "1/1" if mapa.get("win") == ab else "0/1"
+                target["Win/game"].append(win_val)
+            
+            else:
+                index = target["comps"].index(minha_comp)
 
-                    result = [int(a) for a in team_maps[mapa.get("id")]["atk_def/rounds"][index].split("_")]
-                    atk_def_numbers = atk_def.split("_")
+                # Soma rounds Atk_Def
+                result = [int(x) for x in target["atk_def/rounds"][index].split("_")]
+                atk_def_numbers = atk_def.split("_")
+                target["atk_def/rounds"][index] = f"{result[0] + int(atk_def_numbers[0])}_{result[1] + int(atk_def_numbers[1])}_{result[2] + int(atk_def_numbers[2])}_{result[3] + int(atk_def_numbers[3])}"
 
-                    team_maps[mapa.get("id")]["atk_def/rounds"][index] = f"{result[0] + int(atk_def_numbers[0])}_{result[1] + int(atk_def_numbers[1])}_{result[2] + int(atk_def_numbers[2])}_{result[3] + int(atk_def_numbers[3])}"
-
-                    result = [int(a) for a in team_maps[mapa.get("id")]["Win/game"][index].split("/")]
-
-                    if mapa.get("win") == ["A", "B"][i]:
-                        team_maps[mapa.get("id")]["Win/game"][index] = f"{result[0] + 1}/{result[1] + 1}"
-                    else:
-                        team_maps[mapa.get("id")]["Win/game"][index] = f"{result[0]}/{result[1] + 1}"
+                # Soma vitórias/jogos
+                v, g = [int(x) for x in target["Win/game"][index].split("/")]
+                v += 1 if mapa.get("win") == ab else 0
+                target["Win/game"][index] = f"{v}/{g+1}"
 
 
         embed2 = discord.Embed(title=time.get("tag") + "- Mapas",
@@ -369,7 +351,7 @@ async def printer(interaction: discord.Interaction, time_query: str):
 
         time_mapas = []
         for map in pool:
-            time_mapas.append(team_maps[map["nome"]])
+            time_mapas.append(team_maps[map["id"]])
         for mapa in time_mapas:
             descricaoMapa = ""
             if mapa.get("comps") == []:
@@ -385,7 +367,7 @@ async def printer(interaction: discord.Interaction, time_query: str):
                     
                     descricaoMapa += "\n"
             
-            embed2.add_field(name=f"{mapa.get('nome')}", value=descricaoMapa, inline=False)
+            embed2.add_field(name=f"{mapa['nome']}", value=descricaoMapa, inline=False)
 
         embedList.append(embed)
         embedList.append(embed2)
