@@ -139,15 +139,14 @@ async def on_message(message):
                                             INFO_LOADERS 
 '''
 
-@bot.tree.command(name="update_cache", description="Força o reload dos dados")
+@bot.tree.command(name="update_cache", description="Força o reload dos dados", guild=GUILD_ID_INFO)
 async def update_cache(interaction: discord.Interaction):
     if interaction.user.id != CREATOR_ID:
         return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
     
     await interaction.response.defer(ephemeral=True) # Resposta visível só para você
     
-    # Usamos o to_thread para o bot não travar enquanto o banco responde
-    await asyncio.to_thread(perform_global_reload)
+    perform_global_reload()
     
     await interaction.edit_original_response(content="Cache atualizado com sucesso!", ephemeral=True)
 
