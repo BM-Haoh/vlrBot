@@ -55,7 +55,7 @@ Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The dat
 1. Clone the repository.
 2. Install dependencies: `pip install -r requirements.txt`.
 3. Set up the Database (see [QuickBuild](#quickbuild-of-database)).
-4. Create a `.env` file with your credentials.
+4. Create a `.env` file with your credentials (rename [.env.example](.env.example) and fill it in).
 5. Run `python src/auto_scrapper.py` to populate your database.
 6. Run `python src/main.py` to start the bot.
 
