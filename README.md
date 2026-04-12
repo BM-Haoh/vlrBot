@@ -151,3 +151,4 @@ ALTER TABLE "partidas" ADD FOREIGN KEY ("camp_id") REFERENCES "campeonatos" ("id
 ```
 5. Copy your connection string from the dashboard. 
    *Note: Ensure `sslmode=require` is present in the URL.*
+6. **Manual Data Seeding:** Some tables do not auto-populate in this version. You should checkout the `discBot_prototype` branch and use `migrar.ipynb` to populate the `times`, `mapas_lista`, and `agentes` tables. Note that some records (like `campeonatos`) must be added manually. You will also need to manually update these tables when new maps or agents are released, or when the map pool changes.
