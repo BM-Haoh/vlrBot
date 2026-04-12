@@ -1,25 +1,153 @@
 # VlrBot
 
-## Summary:
-- Valorant bot. Using webscrapping with selenium in vlr.gg to archive some informartions about vct matches and analyzing it, making it available to visualize through a discord bot. We use .json as a "database" of the information about teams, players and matches (Available in v1.0, from v2.0 onwards we use SQL, archived on neon.tech)
+## Summary
+A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches.
 
 ---
 
-## Archives:
-| Archives | Type | Summary |
+## Files & Directory Structure
+| File/Folder | Type | Summary |
 | :------- | :--: | :------ |
-| [Auto](./src/auto.ipynb) | `.ipynb` | Testing the webscrapping - auto.py functions and class's methods prototypes. |
-| [Migrar](./src/migrar.ipynb) | `.ipynb` | Transforming .json into SQL (for v2.0). |
-| [Auto](./src/auto.py) | `.py` | Webscrapping logic with classes vlr_stealer and stats_manager (not used in this version). |
-| [New_Api_Handler](./src/new_api_handler.py) | `.py` | Used to transform the dictionary created by vlr_stealer into a new item of partidas.json (referes to matches). |
-| [Disc_buttons](./src/disc_buttons.py) | `.py` | Creates interactable buttons used to "switch pages" into discord embed. |
-| [Main](./src/main.py) | `.py` | Discord bot logic. |
-| [botAPI](./botAPI) | `dir / .json` | All the .json used as "database". |
+| [Starting v2](./src/starting%20v2.ipynb) | `.ipynb` | Initial planning and first steps for the SQL database. |
+| [Auto](./src/auto.py) | `.py` | Web scraping logic featuring `vlr_stealer` and `stats_manager` classes (Note: `stats_manager` is currently inactive). |
+| [DB_handler](./src/DB_handler.py) | `.py` | INSERT logic handled by the `DB_handler` class. |
+| [Auto_scrapper.py](./src/auto_scrapper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
+| [Disc_buttons](./src/disc_buttons.py) | `.py` | Interactive buttons for navigating Discord embeds. |
+| [Main](./src/main.py) | `.py` | Core Discord bot logic. |
+| [Scrapper](./.github/workflows/scrapper.yml) | `.yml` | Automation logic for GitHub Actions. |
+| [Agents](./assets/agents) | `dir/ .png` | PNG files used to create Discord emojis for each agent. |
+| [Teams](./assets/teams) | `dir/ .png` | PNG files used to create Discord emojis for each team. |
+| [DB Sch](./assets/DB%20Sch.png) | `.png` | Database Schema diagram. |
 
 ---
 
-## How to run
-1. Clone the repo
-2. Install dependencies: `pip install -r requirements.txt`
-3. Create a `.env` file with your `DISCORD_TOKEN`
-4. Run `python src/main.py`
+## Database
+
+![Database Schema](./assets/DB%20Sch.png)
+
+Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The database consists of 7 tables. Descriptions of Portuguese attributes:
+- **Agentes**: Agents ('nome' = name)
+- **Mapas_lista**: Map list
+- **Composicoes**: Team compositions
+- **Mapas_jogados**: Played maps ('vencedor_mapa' = map winner)
+- **Partidas**: Matches ('vencedor_time_letra' = winning team letter)
+- **Campeonatos**: Tournaments ('completo' = completed)
+- **Times**: Teams ('regiao' = region)
+
+**Technical Details:**
+- **Emojis**: Attributes like `emoji` and `emoji_discord` follow the Discord format: `<:mibr:1370182490953748490>`.
+- **Pickban Log**: Formatted as JSON: `{ "Abans": [12, 2], "Bbans": [7, 9], "Apicks": [5], "Bpicks": [4], "decider": 1 }`, where numbers refer to `mapas_lista.id`.
+- **Team References**: `atk_str`, `vencedor_mapa`, and `vencedor_time_letra` use 'A' or 'B' values.
+- **Round History**: `rounds_string` resembles `BBBBABBBABBBXAABAAAABAB`. 'A'/'B' indicates the winner of that round; 'X' at position 13 marks half-time, and at position 26 marks overtime.
+
+---
+
+## Environment Variables (.env)
+
+- `DISCORD_TOKEN`: Your Discord bot token.
+- `DATABASE_URL`: Your PostgreSQL connection string.
+- `GUILD_ID`: Server ID for testing (remove `guild=...` from commands to sync globally, though this is slower).
+- `CREATOR_ID`: Your Discord ID (restricts RAM cache updates to the owner).
+
+---
+
+## How to Run
+1. Clone the repository.
+2. Install dependencies: `pip install -r requirements.txt`.
+3. Set up the Database (see [QuickBuild](#quickbuild-of-database)).
+4. Create a `.env` file with your credentials.
+5. Run `python src/auto_scrapper.py` to populate your database.
+6. Run `python src/main.py` to start the bot.
+
+---
+
+### QuickBuild of Database
+To replicate the database on Neon Tech:
+1. Access [Neon Tech Console](https://console.neon.tech/).
+2. Create a new project.
+3. Open the **SQL Editor**.
+4. Copy and execute the SQL script provided below to generate the tables and foreign keys.
+```
+CREATE TABLE "agentes" (
+  "id" integer PRIMARY KEY,
+  "nome" text,
+  "emoji_discord" text
+);
+
+CREATE TABLE "campeonatos" (
+  "id" integer PRIMARY KEY,
+  "nome" text,
+  "url" text,
+  "completo" boolean
+);
+
+CREATE TABLE "composicoes" (
+  "id" integer PRIMARY KEY,
+  "agente1" integer,
+  "agente2" integer,
+  "agente3" integer,
+  "agente4" integer,
+  "agente5" integer
+);
+
+CREATE TABLE "mapas_lista" (
+  "id" integer PRIMARY KEY,
+  "nome" text,
+  "in_pool" boolean
+);
+
+CREATE TABLE "times" (
+  "id" integer PRIMARY KEY,
+  "nome" text,
+  "tag" text,
+  "regiao" text,
+  "emoji" text,
+  "img_url" text
+);
+
+CREATE TABLE "mapas_jogados" (
+  "id" integer PRIMARY KEY,
+  "partida_id" integer,
+  "mapa_id" integer,
+  "atk_str" char(1),
+  "compa_id" integer,
+  "compb_id" integer,
+  "rounds_string" text,
+  "vencedor_mapa" char(1)
+);
+
+CREATE TABLE "partidas" (
+  "id" integer PRIMARY KEY,
+  "timea_id" integer,
+  "timeb_id" integer,
+  "pickban_log" text,
+  "vencedor_time_letra" char(1),
+  "camp_id" integer
+);
+
+ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente1") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente2") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente3") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente4") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente5") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mapas_jogados" ADD FOREIGN KEY ("compa_id") REFERENCES "composicoes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mapas_jogados" ADD FOREIGN KEY ("compb_id") REFERENCES "composicoes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mapas_jogados" ADD FOREIGN KEY ("mapa_id") REFERENCES "mapas_lista" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mapas_jogados" ADD FOREIGN KEY ("partida_id") REFERENCES "partidas" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "partidas" ADD FOREIGN KEY ("timea_id") REFERENCES "times" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "partidas" ADD FOREIGN KEY ("timeb_id") REFERENCES "times" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "partidas" ADD FOREIGN KEY ("camp_id") REFERENCES "campeonatos" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+```
+5. Copy your connection string from the dashboard. 
+   *Note: Ensure `sslmode=require` is present in the URL.*
