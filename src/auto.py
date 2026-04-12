@@ -1,5 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
+from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -45,11 +46,11 @@ team_dict ={
     "TYLOO": "TYL",
     "All Gamers": "AG",
     "Nova Esports": "NOVA",
-    "JD Mall JDG Esports\n(JDG Esports)": "JDG",
-    "Wuxi Titan Esports Club\n(Titan Esports Club)": "TEC",
+    "JD Mall JDG Esports": "JDG",
+    "Wuxi Titan Esports Club": "TEC",
     "Xi Lai Gaming": "XLG",
     "EDward Gaming": "EDG",
-    "Guangzhou Huadu Bilibili Gaming\n(Bilibili Gaming)": "BLG",
+    "Guangzhou Huadu Bilibili Gaming": "BLG",
     "Dragon Ranger Gaming": "DRG",
 
     # APAC
@@ -407,6 +408,7 @@ class vlr_stealer():
         for i, map in enumerate(picks[:end]):
             # Oppening map inside the page
             next_map(self.browser, maps_btns, picks, map_pointer, self.current_url)
+            sleep(.2)
             map_pointer += 1
             atk, rnd_sqc = map_treatment(self.browser, map[1])
             # Info of each mpa in a match
@@ -512,6 +514,8 @@ class vlr_stealer():
             pbar.update()
 
             self.browser.get(match)
+
+            sleep(.5)
 
             self.current_url = self.browser.current_url
 
