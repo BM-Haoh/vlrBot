@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Rodar o Scraper com Retry
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 10    # Tempo máximo de cada tentativa
           max_attempts: 3        # Tenta até 3 vezes se der erro
