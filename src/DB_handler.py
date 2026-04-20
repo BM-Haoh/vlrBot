@@ -28,49 +28,54 @@ class DB_handler:
                         pool = []
                         map_id = 0
 
-                        map_added = [False, None]
+                        map_added = False
                         # Processando bans
-                        if  p.get("Abans"):
-                            pool.extend(p["Abans"])
-                            for m in p["Abans"]:
+                        if  p["pickban"].get("Abans"):
+                            pool.extend(p["pickban"]["Abans"])
+                            for m in p["pickban"]["Abans"]:
                                 if m.lower().strip() not in self.map_dict:
                                     map_id = self.__create_map(m.capitalize(), cur)
                                     self.map_dict[m.lower().strip()] = [map_id, True]
-                                pb["Abans"] = self.map_dict[m.lower().strip()][0]
+                                    map_added = True
+                            pb["Abans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Abans"]]
 
-                        if  p.get("Bbans"):
-                            pool.extend(p["Bbans"])
-                            for m in p["Bbans"]:
+                        if  p["pickban"].get("Bbans"):
+                            pool.extend(p["pickban"]["Bbans"])
+                            for m in p["pickban"]["Bbans"]:
                                 if m.lower().strip() not in self.map_dict:
                                     map_id = self.__create_map(m.capitalize(), cur)
                                     self.map_dict[m.lower().strip()] = [map_id, True]
-                            pb["Bbans"] = [self.map_dict[m.lower().strip()][0] for m in p["Bbans"]]
+                                    map_added = True
+                            pb["Bbans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bbans"]]
 
                         # Processando picks
-                        pool.extend(p["Apicks"])
-                        for m in p["Apicks"]:
+                        pool.extend(p["pickban"]["Apicks"])
+                        for m in p["pickban"]["Apicks"]:
                             if m.lower().strip() not in self.map_dict:
                                 map_id = self.__create_map(m.capitalize(), cur)
                                 self.map_dict[m.lower().strip()] = [map_id, True]
-                        pb["Apicks"] = [self.map_dict[m.lower().strip()][0] for m in p["Apicks"]]
+                                map_added = True
+                        pb["Apicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Apicks"]]
 
-                        pool.extend(p["Bpicks"])
-                        for m in p["Bpicks"]:
+                        pool.extend(p["pickban"]["Bpicks"])
+                        for m in p["pickban"]["Bpicks"]:
                             if m.lower().strip() not in self.map_dict:
                                 map_id = self.__create_map(m.capitalize(), cur)
                                 self.map_dict[m.lower().strip()] = [map_id, True]
-                        pb["Bpicks"] = [self.map_dict[m.lower().strip()][0] for m in p["Bpicks"]]
+                                map_added = True
+                        pb["Bpicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bpicks"]]
 
 
                         # Processando decider
-                        m = p["decider"]
+                        m = p["pickban"]["decider"]
                         pool.append(m)
                         if m.lower().strip() not in self.map_dict:
                             map_id = self.__create_map(m.capitalize(), cur)
                             self.map_dict[m.lower().strip()] = [map_id, True]
-                        pb["decider"] = self.map_dict[m.lower().strip()][0]
+                            map_added = True
+                        pb["decider"] = int(self.map_dict[m.lower().strip()][0])
 
-                        pickban_str = json.dumps(p['pickban'])
+                        pickban_str = json.dumps(pb)
 
                         pool_change = False
                         for map in pool:
@@ -78,15 +83,15 @@ class DB_handler:
                                 pool_change = True
                                 break
 
-                        if map_id:
+                        if map_added:
                             pool_change = True
 
                         if pool_change:
                             pool_id = []
                             for map in self.map_dict:
-                                self.map_dict[map][1] = False
+                                self.map_dict[map][1] = 0
                             for i, map in enumerate(pool):
-                                self.map_dict[map.lower().strip()][1] = True
+                                self.map_dict[map.lower().strip()][1] = 1
                                 pool_id.append(self.map_dict[map.lower().strip()][0])
 
                             cur.execute("""
@@ -112,7 +117,7 @@ class DB_handler:
                             id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0], cur)
                             id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1], cur)
 
-                            id_mapa = self.map_dict.get(mapa['id'].lower().strip())
+                            id_mapa = self.map_dict.get(mapa['id'].lower().strip())[0]
                             # 3. Inserir o Mapa jogado, associando à partida e às composições
                             # Note: 'atk' no seu JSON vira 'atk_start' no banco
                             cur.execute("""

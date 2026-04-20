@@ -63,7 +63,7 @@ team_dict ={
     "DetonatioN FocusMe": "DFM",
     "Gen.G": "GEN",
     "T1": "T1",
-    "KIWOOM DRX": "KRX",
+    "Kiwoom DRX": "KRX",
     "Paper Rex": "PRX",
     "Rex Regum Qeon": "RRQ"
 }
