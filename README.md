@@ -24,7 +24,7 @@ A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive 
 ## Database
 
 ![Database Schema](./assets/DB%20Sch.svg)
-**Data Mapping Note:** `stat_players` table may raise errors during insertion if a record contains "N/A". This usually happens when a team changes its tag on vlr.gg (e.g., when DRX changed to KPR), causing a mismatch with the existing database records. While new players are added automatically, team tags must be updated manually in the `times` table to maintain Referential Integrity.
+<small>**Data Mapping Note:** `stat_players` table may raise errors during insertion if a record contains "N/A". This usually happens when a team changes its tag on vlr.gg (e.g., when DRX changed to KPR), causing a mismatch with the existing database records. While new players are added automatically, team tags must be updated manually in the `times` table to maintain Referential Integrity.</small>
 
 Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The database consists of 7 tables. Descriptions of Portuguese attributes:
 - **Agentes**: Agents ('nome' = name)
