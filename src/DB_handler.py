@@ -11,9 +11,7 @@ class DB_handler:
         self.DB_URL = os.getenv("DATABASE_URL")
         self.matches = matches
 
-        self.map_dict = self.__load_id_maps()
-        self.agent_dict = self.__load_id_agents()
-        self.teams_dict = self.__load_id_times()
+        self.map_dict, self.agent_dict, self.teams_dict = self.__load_info()
 
     def process_matches(self):
         #try:
@@ -26,22 +24,78 @@ class DB_handler:
                         id_time_b = self.teams_dict.get(p['times'][1])
 
                         # Convertendo o dicionário de pickban para string JSON
-                        pb = p["pickban"]
+                        pb = {}
+                        pool = []
+                        map_id = 0
 
+                        map_added = [False, None]
                         # Processando bans
-                        if  pb.get("Abans"):
-                            pb["Abans"] = [self.map_dict[m.lower().strip()] for m in pb["Abans"]]
-                        if  pb.get("Bbans"):
-                            pb["Bbans"] = [self.map_dict[m.lower().strip()] for m in pb["Bbans"]]
+                        if  p.get("Abans"):
+                            pool.extend(p["Abans"])
+                            for m in p["Abans"]:
+                                if m.lower().strip() not in self.map_dict:
+                                    map_id = self.__create_map(m.capitalize(), cur)
+                                    self.map_dict[m.lower().strip()] = [map_id, True]
+                                pb["Abans"] = self.map_dict[m.lower().strip()][0]
+
+                        if  p.get("Bbans"):
+                            pool.extend(p["Bbans"])
+                            for m in p["Bbans"]:
+                                if m.lower().strip() not in self.map_dict:
+                                    map_id = self.__create_map(m.capitalize(), cur)
+                                    self.map_dict[m.lower().strip()] = [map_id, True]
+                            pb["Bbans"] = [self.map_dict[m.lower().strip()][0] for m in p["Bbans"]]
+
                         # Processando picks
-                        pb["Apicks"] = [self.map_dict[m.lower().strip()] for m in pb["Apicks"]]
-                        pb["Bpicks"] = [self.map_dict[m.lower().strip()] for m in pb["Bpicks"]]
+                        pool.extend(p["Apicks"])
+                        for m in p["Apicks"]:
+                            if m.lower().strip() not in self.map_dict:
+                                map_id = self.__create_map(m.capitalize(), cur)
+                                self.map_dict[m.lower().strip()] = [map_id, True]
+                        pb["Apicks"] = [self.map_dict[m.lower().strip()][0] for m in p["Apicks"]]
+
+                        pool.extend(p["Bpicks"])
+                        for m in p["Bpicks"]:
+                            if m.lower().strip() not in self.map_dict:
+                                map_id = self.__create_map(m.capitalize(), cur)
+                                self.map_dict[m.lower().strip()] = [map_id, True]
+                        pb["Bpicks"] = [self.map_dict[m.lower().strip()][0] for m in p["Bpicks"]]
+
 
                         # Processando decider
-                        pb["decider"] = self.map_dict[pb.get("decider").lower().strip()]
+                        m = p["decider"]
+                        pool.append(m)
+                        if m.lower().strip() not in self.map_dict:
+                            map_id = self.__create_map(m.capitalize(), cur)
+                            self.map_dict[m.lower().strip()] = [map_id, True]
+                        pb["decider"] = self.map_dict[m.lower().strip()][0]
 
                         pickban_str = json.dumps(p['pickban'])
 
+                        pool_change = False
+                        for map in pool:
+                            if not self.map_dict[map.lower().strip()][1]:
+                                pool_change = True
+                                break
+
+                        if map_id:
+                            pool_change = True
+
+                        if pool_change:
+                            pool_id = []
+                            for map in self.map_dict:
+                                self.map_dict[map][1] = False
+                            for i, map in enumerate(pool):
+                                self.map_dict[map.lower().strip()][1] = True
+                                pool_id.append(self.map_dict[map.lower().strip()][0])
+
+                            cur.execute("""
+                                UPDATE mapas_lista SET in_pool = FALSE
+                                        """)
+                            cur.execute("""
+                                UPDATE mapas_lista SET in_pool = TRUE
+                                WHERE id = ANY(%s)""", (pool_id,))
+                        
                         # 1. Inserir/Atualizar a Partida
                         cur.execute("""
                             INSERT INTO partidas (id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra)
@@ -71,23 +125,29 @@ class DB_handler:
         # except Exception as e:
         #     print(f"Erro durante a migração: {e}")
 
-    def __load_id_maps(self):
-        with self.__get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT id, nome FROM mapas_lista")
-                return {nome.lower(): int(id) for id, nome in cur.fetchall()}
+    def __load_id_maps(self, cur):
+        cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
+        return {nome.lower(): [int(id), in_pool] for id, nome, in_pool in cur.fetchall()}
             
-    def __load_id_agents(self):
-        with self.__get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT id, nome FROM agentes")
-                return {nome.lower(): int(id) for id, nome in cur.fetchall()}
+    def __load_id_agents(self, cur):
+        cur.execute("SELECT id, nome FROM agentes")
+        return {nome.lower(): int(id) for id, nome in cur.fetchall()}
             
-    def __load_id_times(self):
+    def __load_id_times(self, cur):
+        cur.execute("SELECT id, tag FROM times")
+        return {tag: int(id) for id, tag in cur.fetchall()}
+    
+    def __load_info(self):
         with self.__get_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, tag FROM times")
-                return {tag: int(id) for id, tag in cur.fetchall()}
+                return self.__load_id_maps(cur), self.__load_id_agents(cur), self.__load_id_times(cur)
+            
+    def __create_map(self, map_name, cur):
+        cur.execute("""
+            INSERT INTO mapas_lista (nome, in_pool) VALUES (%s, %s) RETURNING id
+        """, (map_name, True))
+        return cur.fetchone()[0]
+
             
     def __get_or_create_comp(self, agents_names, cur):
         agents_ids = [self.agent_dict.get(name.lower().strip()) for name in agents_names]

@@ -63,7 +63,7 @@ team_dict ={
     "DetonatioN FocusMe": "DFM",
     "Gen.G": "GEN",
     "T1": "T1",
-    "KIWOOM DRX": "DRX",
+    "KIWOOM DRX": "KRX",
     "Paper Rex": "PRX",
     "Rex Regum Qeon": "RRQ"
 }
@@ -303,19 +303,8 @@ class vlr_stealer():
         self.camp = ''
         self.matches = []
         self.current_url = ""
-
-    def process_camp(self, link=None):
-        '''
-        processing tournament information
-        
-        :param link: optional parameter: change tournament
-        '''
-        if link:
-            self.browser.get(link)
-        self.camp = get_camp(self.browser)
-        self.matches = self.__get_games()
-        self.matches.reverse()
-        return self.__game_catalog()
+    
+        self.sts_mng = stats_manager()
 
     def process_camps(self):
         '''
@@ -325,22 +314,21 @@ class vlr_stealer():
         
         load_dotenv()
         DB_URL = os.getenv("DATABASE_URL")
-
-        def get_conn():
-            return psycopg.connect(DB_URL)
         
-        with get_conn() as conn:
+        with psycopg.connect(DB_URL) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT url, id FROM campeonatos WHERE completo = FALSE")
                 camps = cur.fetchall()
                 matches = []
-                for camp in camps:
-                    completed = self.__is_completed(camp[0])
-                    self.camp = camp[1]
+                for url, id in camps:
+                    completed = self.__is_completed(url)
+                    self.camp = id
                     self.matches = self.__get_games()
                     self.matches.reverse()
                     matches.extend(self.__game_catalog())
 
+                    self.sts_mng.get_table(self.__stats_table(url), id)
+                    self.sts_mng.save()
                     
                     if completed:
                         cur.execute("UPDATE campeonatos SET completo = TRUE WHERE id = %s", (self.camp,))
@@ -440,26 +428,6 @@ class vlr_stealer():
 
         url = self.browser.current_url
         return url.split('/')[3]
-    
-    def last_match_info(self, link=None, quantity=1):
-        '''
-        processing "recently" match information
-        
-        :param link: optional parameter: change match.
-        :param quantity: optional parameter: define how much matches will you process. By default, just the last, 
-        but you can process the three most recently completed matches of the tournament, for example
-        '''
-        # if optional link is given, change the page to it
-        if link:
-            self.browser.get(link)
-        
-        self.camp = get_camp(self.browser)
-
-        # accessing tournament completed matches page and
-            # getting all the matches, (from the most recently completed to the least)
-        self.matches = self.__get_games()[:quantity]
-        self.matches.reverse()
-        return self.__game_catalog()
 
     def __get_games(self):
         '''
@@ -487,10 +455,7 @@ class vlr_stealer():
         load_dotenv()
         DB_URL = os.getenv("DATABASE_URL")
 
-        def get_conn():
-            return psycopg.connect(DB_URL)
-
-        with get_conn() as conn:
+        with psycopg.connect(DB_URL) as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM partidas WHERE camp_id = %s", (self.camp,))
                 registered_matches = [str(r[0]) for r in cur.fetchall()]
@@ -579,13 +544,18 @@ class vlr_stealer():
         
         return pickban
     
-    def stats_table(self):
+    def __stats_table(self, camp_url):
         '''
         Getting the parameters for creating an pandas table of players' stats
 
         :return table: matrix with all the values for each row of stats
         :return columns: Array with strings containing the columns' names
         '''
+
+        if camp_url:
+            self.browser.get(camp_url)
+        sleep(.5)
+
         # Finding and opening the page with the tournament's stats info
         nav_itens = self.browser.find_elements(By.CLASS_NAME, 'wf-nav-item')
         for item in nav_itens:
@@ -609,6 +579,7 @@ class vlr_stealer():
             table.append(stats)
 
         return table, columns
+    
 
 def creating_table(param):
     '''
@@ -621,27 +592,29 @@ def creating_table(param):
     linhas, colunas = param
     return pd.DataFrame(linhas, columns=colunas)
 
-def fixing_info(table):
+def fixing_info(table, id):
     '''
     removing useless info, adding additional info, fixing columns names, fixing value types
 
     :param table: pd.DataFrame object
+    :param id: tournament ID (to be added in the table as a column)
     :return table: pd.DataFrame object with reorganized and fixed values
     '''
     # Removing useless info
     useless_info = ["AGENTS", "RND", "KMAX", "K", "D", "A", "FK", "FD", "CL%"]
     table = table.drop(columns=useless_info)
 
-    # Inserting new column
+    # Inserting new columns
     table.insert(1, "TEAM", "N/A")
+    table.insert(2, "CAMP", id)
 
     # Fixing columns names
-    new_columns = {"R2.0": "RATING", "K:D": "K/D"}
+    new_columns = {"R2.0": "RATING", "K:D": "KD", "HS%": "HS"}
     table = table.rename(columns=new_columns)
 
     # Fixing value types
-    colunas_numericas = ["RATING", "ACS", "K/D", "ADR", "KPR", "APR", "FKPR", "FDPR"]
-    colunas_porcentagem = ["KAST", "HS%"]
+    colunas_numericas = ["RATING", "ACS", "KD", "ADR", "KPR", "APR", "FKPR", "FDPR"]
+    colunas_porcentagem = ["KAST", "HS"]
     table[colunas_numericas] = table[colunas_numericas].astype(float)
     for coluna in colunas_porcentagem:
         table[coluna] = table[coluna].str.replace("%", "").astype(float) / 100
@@ -663,51 +636,94 @@ def sep_team_player(table):
     return table
 
 class stats_manager():
-    def __init__(self, param):
-        self.table = self.__pre_processing_table(param)
+    def __init__(self):
+        self.id = None
+        self.table = None
+
+        self.players = None
+        self.teams = None
+
+    def get_table(self, param, id):
+        self.id = id
+        self.table = self.__pre_processing_table(param, id)
 
     def display(self):
-        print(self.table.head(), self.table.info())
+        print(self.table)
+
+    def __get_info(self, cur):
+        cur.execute("SELECT id, nome FROM players")
+        self.players = {nome: id for id, nome in cur.fetchall()}
+
+        cur.execute("SELECT id, tag FROM times")
+        self.teams = {tag: id for id, tag in cur.fetchall()}
+
+        for player in self.table["PLAYER"]:
+            if player not in self.players:
+                cur.execute("INSERT INTO players (nome) VALUES (%s) RETURNING id", (player,))
+                player_id = cur.fetchone()[0]
+                
+                self.players[player] = player_id
+        
+        self.table["TEAM"] = self.table["TEAM"].map(self.teams)
+        self.table["PLAYER"] = self.table["PLAYER"].map(self.players)
+        
 
     def save(self):
-        #TODO
-        pass
+        load_dotenv()
+        DB_URL = os.getenv("DATABASE_URL")
 
-    def __pre_processing_table(self, param):
+        with psycopg.connect(DB_URL) as conn:
+            with conn.cursor() as cur:
+                self.__get_info(cur)
+
+                try:
+                    for row in self.table.itertuples():
+                        cur.execute(""" 
+                                INSERT INTO stats_players (
+                                id_player, id_time, id_camp, rating, acs, kd, 
+                                kast, adr, kpr, apr, fkpr, fdpr, hs, cl
+                                ) 
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                ON CONFLICT (id_player, id_time, id_camp)
+                                DO UPDATE SET 
+                                    rating = EXCLUDED.rating, 
+                                    acs = EXCLUDED.acs, 
+                                    kd = EXCLUDED.kd, 
+                                    kast = EXCLUDED.kast, 
+                                    adr = EXCLUDED.adr, 
+                                    kpr = EXCLUDED.kpr, 
+                                    apr = EXCLUDED.apr, 
+                                    fkpr = EXCLUDED.fkpr, 
+                                    fdpr = EXCLUDED.fdpr, 
+                                    hs = EXCLUDED.hs, 
+                                    cl = EXCLUDED.cl
+                                """, 
+                                (
+                                    row.PLAYER, row.TEAM, row.CAMP, row.RATING, 
+                                    row.ACS, row.KD, row.KAST, row.ADR, 
+                                    row.KPR, row.APR, row.FKPR, row.FDPR, 
+                                    row.HS, row.CL  
+                                )
+                            )
+                except Exception as e:
+                    print(f"ID_PLAYER: {row.PLAYER} (Tipo: {type(row.PLAYER)}), ID_TEAM: {row.TEAM} (Tipo: {type(row.TEAM)}), ID_CAMP: {row.CAMP} (Tipo: {type(row.CAMP)})")
+                    raise e
+                
+                print(f"Stats of tournament {self.id} saved successfully.")
+
+    def __pre_processing_table(self, param, id):
         table = creating_table(param)
-        table = fixing_info(table)
+        table = fixing_info(table, id)
         return sep_team_player(table)
 
 if __name__ == "__main__":
-    linkAM = 'https://www.vlr.gg/event/2682/vct-2026-americas-kickoff'
-    linkEM = 'https://www.vlr.gg/event/2684/vct-2026-emea-kickoff'
-    linkCH = 'https://www.vlr.gg/event/2685/vct-2026-china-kickoff'
-    linkAP = 'https://www.vlr.gg/event/2683/vct-2026-pacific-kickoff'
-    linkMA = 'https://www.vlr.gg/event/2760/valorant-masters-santiago-2026'
     mtc_gtr = vlr_stealer()
-    
-    # for camp in [linkAM, linkEM, linkCH, linkAP, linkMA]:
-    #     json = mtc_gtr.process_camp(camp)
-    #     api_handler = nah.handler(json)
-    #     api_handler.add_partidas()
 
     json = mtc_gtr.process_camps()
     print(json)
-    # api_handler = nah.handler(json)
-    # api_handler.add_partidas()
-    
-    
-    
-    
-    
-    
-    
-    
-    #print("\n\n\n")
-    #print(mtc_gtr.match_info('https://www.vlr.gg/598922/jdg-esports-vs-titan-esports-club-vct-2026-china-kickoff-ur1'))
-    #print("\n\n\n")
-    #print(mtc_gtr.last_match_info('https://www.vlr.gg/event/2283/valorant-champions-2025', quantity=5))
-    #print("\n\n\n")
-    #print(mtc_gtr.last_match_info(quantity=0))
+
     #tabela = stats_manager(mtc_gtr.stats_table())
     #print(tabela.display())
+
+    #mtc_gtr = vlr_stealer(link="https://www.vlr.gg/event/2682/vct-2026-americas-kickoff")
+    #mtc_gtr.get_stats_table()

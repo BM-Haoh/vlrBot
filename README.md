@@ -17,13 +17,13 @@ A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive 
 | [Scrapper](./.github/workflows/scrapper.yml) | `.yml` | Automation logic for GitHub Actions. |
 | [Agents](./assets/agents) | `dir/ .png` | PNG files used to create Discord emojis for each agent. |
 | [Teams](./assets/teams) | `dir/ .png` | PNG files used to create Discord emojis for each team. |
-| [DB Sch](./assets/DB%20Sch.png) | `.png` | Database Schema diagram. |
+| [DB Sch](./assets/DB%20Sch.svg) | `.svg` | Database Schema diagram. |
 
 ---
 
 ## Database
 
-![Database Schema](./assets/DB%20Sch.png)
+![Database Schema](./assets/DB%20Sch.svg)
 
 Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The database consists of 7 tables. Descriptions of Portuguese attributes:
 - **Agentes**: Agents ('nome' = name)
@@ -125,6 +125,29 @@ CREATE TABLE "partidas" (
   "camp_id" integer
 );
 
+CREATE TABLE "players" (
+  "id" integer PRIMARY KEY,
+  "nome" text
+);
+
+CREATE TABLE "stats_players" (
+  "id_player" integer,
+  "id_time" integer,
+  "id_camp" integer,
+  "rating" numeric(3,2),
+  "acs" numeric(4,1),
+  "kd" numeric(3,2),
+  "kast" numeric(3,2),
+  "adr" numeric(4,1),
+  "kpr" numeric(3,2),
+  "apr" numeric(3,2),
+  "fkpr" numeric(3,2),
+  "fdpr" numeric(3,2),
+  "hs" numeric(3,2),
+  "cl" text,
+  PRIMARY KEY ("id_player", "id_time", "id_camp")
+);
+
 ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente1") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "composicoes" ADD FOREIGN KEY ("agente2") REFERENCES "agentes" ("id") DEFERRABLE INITIALLY IMMEDIATE;
@@ -148,6 +171,12 @@ ALTER TABLE "partidas" ADD FOREIGN KEY ("timea_id") REFERENCES "times" ("id") DE
 ALTER TABLE "partidas" ADD FOREIGN KEY ("timeb_id") REFERENCES "times" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "partidas" ADD FOREIGN KEY ("camp_id") REFERENCES "campeonatos" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "stats_players" ADD FOREIGN KEY ("id_player") REFERENCES "players" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "stats_players" ADD FOREIGN KEY ("id_time") REFERENCES "times" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "stats_players" ADD FOREIGN KEY ("id_camp") REFERENCES "campeonatos" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 ```
 5. Copy your connection string from the dashboard. 
    *Note: Ensure `sslmode=require` is present in the URL.*

@@ -45,71 +45,68 @@ players = {} # unused
 def get_conn():
         return psycopg.connect(DB_URL)
 
-def load_id_times():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, tag, emoji, regiao, nome, img_url FROM times WHERE id != 0 ORDER BY regiao, tag")
-            return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
+def load_id_times(cur):
+    cur.execute("SELECT id, tag, emoji, regiao, nome, img_url FROM times WHERE id != 0 ORDER BY regiao, tag")
+    return [{"id": int(id), "tag": tag, "emoji": emoji, "regiao": regiao, "nome": nome, "img_url": img_url} for id, tag, emoji, regiao, nome, img_url in cur.fetchall()]
 
-def load_id_maps():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
-            return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
+def load_id_maps(cur):
+    cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
+    return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in cur.fetchall()}
         
-def load_id_agents():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, nome, emoji_discord FROM agentes")
-            return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
+def load_id_agents(cur):
+    cur.execute("SELECT id, nome, emoji_discord FROM agentes")
+    return {int(id): {"nome": nome, "emoji": emoji} for id, nome, emoji in cur.fetchall()}
 
-def load_id_comps():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, agente1, agente2, agente3, agente4, agente5 FROM composicoes")
-            return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
+def load_id_comps(cur):
+    cur.execute("SELECT id, agente1, agente2, agente3, agente4, agente5 FROM composicoes")
+    return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in cur.fetchall()}
         
-def load_id_camps():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, nome FROM campeonatos")
-            return {int(id): nome for id, nome in cur.fetchall()}
+def load_id_camps(cur):
+    cur.execute("SELECT id, nome FROM campeonatos")
+    return {int(id): nome for id, nome in cur.fetchall()}
 
-def load_id_partidas():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas")
-            partidas_cache = [
-                {"id": r[0], "camp_id": camps.get(r[1]), "timeA/B": [r[2], r[3]], "vencedor_time_letra": r[4], "pickban": json.loads(r[5])} 
-                for r in cur.fetchall()
-            ] 
+def load_id_partidas(cur, camps_dict):
+    cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas")
+    partidas_cache = [
+        {"id": r[0], "camp_id": camps_dict.get(r[1]), "timeA/B": [r[2], r[3]], "vencedor_time_letra": r[4], "pickban": json.loads(r[5])} 
+        for r in cur.fetchall()
+    ] 
     return partidas_cache
 
-def load_id_mapas_jogados():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados")
-            mapas_jogados_cache = [
-                {
-                    "id": r[0], "partida_id": r[1],"id_mapa": r[2], "nome": maps[r[2]]["nome"], 
-                    "win": r[3], "rounds": r[4], "atk_start": r[5],
-                    "comps": [comps.get(r[6]), comps.get(r[7])]
-                }
-                for r in cur.fetchall()
-            ]
+def load_id_mapas_jogados(cur, maps_dict, comps_dict):
+    cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados")
+    mapas_jogados_cache = [
+        {
+            "id": r[0], "partida_id": r[1],"id_mapa": r[2], "nome": maps_dict[r[2]]["nome"], 
+            "win": r[3], "rounds": r[4], "atk_start": r[5],
+            "comps": [comps_dict.get(r[6]), comps_dict.get(r[7])]
+        }
+        for r in cur.fetchall()
+    ]
     return mapas_jogados_cache
 
 def perform_global_reload():
     print("Recarregando dados do banco para a RAM...")
-    global times, maps, agents, comps, camps, partidas, mapas_jogados
-    times = load_id_times()
-    maps = load_id_maps()
-    agents = load_id_agents()
-    comps = load_id_comps()
-    camps = load_id_camps()
-    partidas = load_id_partidas()
-    mapas_jogados = load_id_mapas_jogados()    
-    print("Dados recarregados com sucesso!")
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                _times = load_id_times(cur)
+                _maps = load_id_maps(cur)
+                _agents = load_id_agents(cur)
+                _comps = load_id_comps(cur)
+                _camps = load_id_camps(cur)
+                _partidas = load_id_partidas(cur, _camps)
+                _mapas_jogados = load_id_mapas_jogados(cur, _maps, _comps)
+
+        global times, maps, agents, comps, camps, partidas, mapas_jogados
+        times, maps, agents, comps, camps, partidas, mapas_jogados = _times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados
+        
+        print("Dados recarregados com sucesso!")
+        return 1
+    
+    except Exception as e:
+        print(f"Erro durante o reload: {e}")
+        return 0
 
 # Events
 @bot.event
@@ -146,9 +143,10 @@ async def update_cache(interaction: discord.Interaction):
     
     await interaction.response.defer(ephemeral=True) # Resposta visível só para você
     
-    perform_global_reload()
-    
-    await interaction.edit_original_response(content="Cache atualizado com sucesso!", ephemeral=True)
+    if (perform_global_reload()):
+        await interaction.followup.send(content="Cache atualizado com sucesso!", ephemeral=True)
+    else:
+        await interaction.followup.send(content="Erro ao atualizar o cache.", ephemeral=True)
 
 @tasks.loop(time=target_time)
 async def auto_reload_db():
