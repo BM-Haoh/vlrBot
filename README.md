@@ -1,7 +1,7 @@
 # VlrBot
 
 ## Summary
-A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches.
+A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches. Since v2.1, the bot also tracks the performance table from each active tournament (linked to `campeonatos`, see [Database](README.md#database)), capturing metrics like Rating, ACS and ADR to provide deeper match analysis. 
 
 ---
 
@@ -9,7 +9,7 @@ A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive 
 | File/Folder | Type | Summary |
 | :------- | :--: | :------ |
 | [Starting v2](./src/starting%20v2.ipynb) | `.ipynb` | Initial planning and first steps for the SQL database. |
-| [Auto](./src/auto.py) | `.py` | Web scraping logic featuring `vlr_stealer` and `stats_manager` classes (Note: `stats_manager` is currently inactive). |
+| [Auto](./src/auto.py) | `.py` | Web scraping logic featuring `vlr_stealer` and `stats_manager` classes. |
 | [DB_handler](./src/DB_handler.py) | `.py` | INSERT logic handled by the `DB_handler` class. |
 | [Auto_scrapper.py](./src/auto_scrapper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
 | [Disc_buttons](./src/disc_buttons.py) | `.py` | Interactive buttons for navigating Discord embeds. |
@@ -24,6 +24,7 @@ A Valorant bot (v2.0) that uses web scraping with Selenium on vlr.gg to archive 
 ## Database
 
 ![Database Schema](./assets/DB%20Sch.svg)
+**Data Mapping Note:** `stat_players` table may raise errors during insertion if a record contains "N/A". This usually happens when a team changes its tag on vlr.gg (e.g., when DRX changed to KPR), causing a mismatch with the existing database records. While new players are added automatically, team tags must be updated manually in the `times` table to maintain Referential Integrity.
 
 Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The database consists of 7 tables. Descriptions of Portuguese attributes:
 - **Agentes**: Agents ('nome' = name)
@@ -39,6 +40,7 @@ Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The dat
 - **Pickban Log**: Formatted as JSON: `{ "Abans": [12, 2], "Bbans": [7, 9], "Apicks": [5], "Bpicks": [4], "decider": 1 }`, where numbers refer to `mapas_lista.id`.
 - **Team References**: `atk_str`, `vencedor_mapa`, and `vencedor_time_letra` use 'A' or 'B' values.
 - **Round History**: `rounds_string` resembles `BBBBABBBABBBXAABAAAABAB`. 'A'/'B' indicates the winner of that round; 'X' at position 13 marks half-time, and at position 26 marks overtime.
+- **Percentage-based attributes**: Stored as decimals (e.g., `0.55` for 55%). Examples are HS and KAST.
 
 ---
 
