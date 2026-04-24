@@ -1,10 +1,5 @@
-import discord
 from discord.ui import View, Button
-
-class View1(View):
-    @discord.ui.button(label="Click me 1!", style=discord.ButtonStyle.red, emoji="🫥", row=0)
-    async def button1_callback(self, button, interaction):
-        await button.response.send_message("You have clicked the 1st button!")
+import discord
 
 class EmbedChangePage(View):
     def __init__(self, embedList, embedIndex):
