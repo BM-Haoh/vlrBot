@@ -4,13 +4,15 @@
 A Valorant bot (v2.0.0) that uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches. 
 On-discord commands: 
   - `help_times`: show you a list of each team with it's emote so you know how to search for them in `info_time`.
-  - `info_time`: show you a "book". First page has the last 5 matches played by this team; Second page shows the win rate of each composition used in each in-pool map played by the team (team that haven't been played yet will show "missing information", but in portuguese)
+  - `info_time`: show you a "book". First page has the last 5 matches played by this team; Second page shows the win rate of each composition used in each in-pool map played by the team (maps that haven't been played yet will show "missing information", but in portuguese)
 
 ### v2.1.0
 Now the bot also tracks the performance table from each active tournament (linked to `campeonatos`, see [Database](README.md#database)), capturing metrics like Rating, ACS and ADR to provide deeper match analysis. 
 
 ### v2.2.0
-Now we can access the information stored in `stats_players`. `info_time` Shows the mean stats of the last tournament (mean of the ACS of each players, for example. Clutches are shown in the format `won/played`, being won and played the sum instead of the mean) in the first page. It also recieved a third page that contais the 'historical stats'. It works the same as the stats of the last tournament, but using data from all the tournaments registered.
+**Architectural Refactor:** The code previously contained in `main.py` is now split between `main.py` and `brain.py`. [File Structure](README.md#files--directory-structure) to more information.
+**Data Analysis:** Now we can access the information stored in `stats_players`. Integrated Pandas for advanced team statistics (based on player performance).
+**New UI:** `info_time` Shows the mean stats of the last tournament (mean of the ACS of each players, for example. Clutches are shown in the format `won/played`, being won and played the sum instead of the mean) in the first page. It also recieved a third page that contais the 'historical stats'. It works the same as the stats of the last tournament, but using data from all the tournaments registered.
 
 ### v2.2.1
 **Search Normalization:** Users no longer need to include diacritics to find teams. For example, searching for "kru" will now correctly match "KRÜ".
@@ -26,8 +28,8 @@ Now we can access the information stored in `stats_players`. `info_time` Shows t
 | [DB_handler](./src/DB_handler.py) | `.py` | INSERT logic handled by the `DB_handler` class. |
 | [Auto_scrapper.py](./src/auto_scrapper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
 | [Disc_buttons](./src/disc_buttons.py) | `.py` | Interactive buttons for navigating Discord embeds. |
-| [Main](./src/main.py) | `.py` | Core Discord bot logic. |
-| [Brain](./src/brain.py) | `.py` | **Back-end logic:** handles database, caching, and data analysis |
+| [Main](./src/main.py) | `.py` | Discord interface and bot command handling. |
+| [Brain](./src/brain.py) | `.py` | **Back-end logic:** handles database, caching, and data analysis. |
 | [Scrapper](./.github/workflows/scrapper.yml) | `.yml` | Automation logic for GitHub Actions. |
 | [Agents](./assets/agents) | `dir/ .png` | PNG files used to create Discord emojis for each agent. |
 | [Teams](./assets/teams) | `dir/ .png` | PNG files used to create Discord emojis for each team. |
