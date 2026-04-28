@@ -70,7 +70,7 @@ To ensure precision, this command lists all available teams and their correspond
 ## Database
 
 ![Database Schema](./assets/DB%20Sch.svg)
-> **Data Mapping Note:** `stat_players` table may raise errors during insertion if a record contains "N/A". This usually happens when a team changes its tag on vlr.gg (e.g., when DRX changed to KRX), causing a mismatch with the existing database records. While new players are added automatically, team tags must be updated manually in the `times` table to maintain Referential Integrity.
+> **Data Mapping Note:** `stats_players` table may raise errors during insertion if a record contains "N/A". This usually happens when a team changes its tag on vlr.gg (e.g., when DRX changed to KRX), causing a mismatch with the existing database records. While new players are added automatically, team tags must be updated manually in the `times` table to maintain Referential Integrity.
 
 Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The database consists of 9 tables. Descriptions of Portuguese attributes:
 - **Agentes**: Agents ('nome' = name)
