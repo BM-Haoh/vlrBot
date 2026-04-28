@@ -112,15 +112,29 @@ async def auxilio(interaction: discord.Interaction):
         await interaction.response.send_message("Erro ao carregar os times.", ephemeral=False)
         return
     
-    answer = "\n"
+    await interaction.response.defer(ephemeral=False)
+    
+    answer = discord.Embed(title="Tags de Pesquisa de Time", 
+                           description="Comandos que pedem entrada de times aceitam:\n - Nome completo do time\n - Tag do time (como as a seguir)", 
+                           color=discord.Colour(0x1ABC9C))
 
-    pre_region = ""
+    temp_answer = ""
+    pre_region = times[0]["regiao"] # inicializa com a região do primeiro time para evitar erro de comparação no primeiro loop
+    field_count = 0  
+
     for team in times:
         if team["regiao"] != pre_region:
-            answer += "\n" 
-        answer += f"{team['emoji']} {team['tag']}, "
+            if field_count == 2:
+                answer.add_field(name="\u200b", value="\u200b", inline=False) # empty field for spacing
+            answer.add_field(name=f"**__{pre_region}__**", value=temp_answer, inline=True)
+            field_count += 1
+            temp_answer = ""
+        temp_answer += f"{team['emoji']} {team['tag']}\n"
         pre_region = team["regiao"]    
-    await interaction.response.send_message(f"Times disponíveis para info_time: {answer}", ephemeral=False)
+
+    answer.add_field(name=f"**__{pre_region}__**", value=temp_answer, inline=True) # ultima região
+
+    await interaction.edit_original_response(embed=answer)
 
 @bot.tree.command(name="info_time", description="Informação sobre um time", guild=GUILD_ID_INFO)
 async def printer(interaction: discord.Interaction, time_query: str):
@@ -159,10 +173,10 @@ async def printer(interaction: discord.Interaction, time_query: str):
 
         #   CRIANDO EMBED PÁGINA 1
         # Definindo descrição
-        descricao = f"{time.get('regiao')}'s team\n### Stats do último campeonato:"
+        descricao = f"{time.get('regiao')}'s team\n"
         
         embed = discord.Embed(title=f"{time.get('tag')}",
-                            description=descricao,
+                            description=f"{descricao}### Stats do último campeonato:",
                             color=discord.Colour(0x1ABC9C))
 
         embed.set_thumbnail(url=time.get("img_url"))
