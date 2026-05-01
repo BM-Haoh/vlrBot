@@ -667,7 +667,6 @@ class stats_manager():
         self.table["TEAM"] = self.table["TEAM"].map(self.teams)
         self.table["PLAYER"] = self.table["PLAYER"].map(self.players)
         
-
     def save(self):
         load_dotenv()
         DB_URL = os.getenv("DATABASE_URL")

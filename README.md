@@ -8,7 +8,9 @@ Now the bot also tracks the performance table from each active tournament (linke
 
 ### v2.2.0
 **Architectural Refactor:** The code previously contained in `main.py` is now split between `main.py` and `brain.py`. [File Structure](README.md#files--directory-structure) to more information.
+
 **Data Analysis:** Now we can access the information stored in `stats_players`. Integrated Pandas for advanced team statistics (based on player performance).
+
 **New UI:** `info_time` Shows the mean stats of the last tournament (mean of the ACS of each players, for example. Clutches are shown in the format `won/played`, being won and played the sum instead of the mean) in the first page. Received a third page that contais the 'historical stats'. It works the same as the stats of the last tournament, but using data from all the tournaments registered.
 
 #### v2.2.1
@@ -54,16 +56,33 @@ To ensure precision, this command lists all available teams and their correspond
 | [Starting v2](./src/starting%20v2.ipynb) | `.ipynb` | Initial planning and first steps for the SQL database. |
 | [Auto](./src/auto.py) | `.py` | Web scraping logic featuring `vlr_stealer` and `stats_manager` classes. |
 | [DB_handler](./src/DB_handler.py) | `.py` | INSERT logic handled by the `DB_handler` class. |
-| [Auto_scrapper.py](./src/auto_scrapper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
+| [Auto_scraper.py](./src/auto_scraper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
 | [Disc_buttons](./src/disc_buttons.py) | `.py` | Interactive buttons for navigating Discord embeds. |
 | [Main](./src/main.py) | `.py` | Discord interface and bot command handling. |
 | [Brain](./src/brain.py) | `.py` | **Back-end logic:** handles database, caching, and data analysis. |
-| [Scrapper](./.github/workflows/scrapper.yml) | `.yml` | Automation logic for GitHub Actions. |
+| [Scraper](./.github/workflows/scraper.yml) | `.yml` | Automation logic for GitHub Actions. |
 | [Agents](./assets/agents) | `dir/ .png` | PNG files used to create Discord emojis for each agent. |
 | [Teams](./assets/teams) | `dir/ .png` | PNG files used to create Discord emojis for each team. |
 | [Screenshots](./assets/screenshots/) | `dir/ .png` | Screenshots of the bot working. All of them, except [info_time3](./assets/screenshots/info_time3.png), were already shown above. |
+| [Documentation](./docs/) | `dir/ .md` | Project documentation and UML Diagram. |
+| ⤷ [Requirements](./docs/Requisitos.md) | `.md` | Functional and Non-Functional Requirements. |
+| ⤷ [Classes](./docs/Diagramas%20de%20Classe.md) | `.md` | Class Diagram representing the system structure. |
+| ⤷ [Sequence](./docs/Diagramas%20de%20Sequência.md) | `.md` | Sequence Diagram showing object interactions. |
+| ⤷ [Deployment](./docs/Diagrama%20de%20Implantação.md) | `.md` | Deployment Diagram showing infrastructure and cloud services. |
+| ⤷ [Privacy](./docs/PRIVACY_POLICY.md) | `.md` | Privacy Policy regarding data handling. |
+| ⤷ [Terms](./docs/TERMS_OF_SERVICE.md) | `.md` | Terms of Service for bot and dashboard usage. |
 | [DB Sch](./assets/DB%20Sch.svg) | `.svg` | Database Schema diagram. |
 | [SQL_Script](./assets/sql_script.sql) | `.sql` | Database creation script. |
+
+---
+
+## Architecture & Deployment
+
+Below is the deployment architecture of the system, ilustrating how the different cloud services and containers interact:
+
+[![Deployment Architecture Diagram](https://img.plantuml.biz/plantuml/svg/lLRBRjj84BmBu3yqv4Fa0v74co0BGp0YavQZnIQhHCu6M0G8HiCMHMWuJSmCBGj1lYQ7V8X_B3qSogi7DpUl3pwmgwiVLKtgjNN2kBfKKS-k2bq98qgmRgEG_vj27eP6nj3wPbd8bKPhuVbUsb9aj2vq3ixK6FMYtXD8I2-Al3RY_iVzTu8CuSgwGf7TJTIKuN0uAIk59Mg7sSK5V8rwm7-NGgvoGxNE4b9au2HzSPMcepP89aFJ1iv-7xrwyJBgVTjbbbHMf9dpSUXvTSL2o4TddogXzI-Pn-FnRqdQmJmU9y-VlTeDp1frCs6Nc1rK34ByNzLsn7dSajw88qS6BI3CqDmMzp_8mjMTGwEz5VtSqFzeqVI7mmnl2udSYh1GywFTy5b7_CmNa8hg3FffOINt01EzC88FgEO3CjY7av7Yd4jLutR0X-6XFrFSAbzAMGgTsJuSkedhM0z9sc7QMjU5UrFFmppIrxXUadMVbeLxAB9r4DUWsaZa8XdsE_W_O4KX9SpQSe-aAqXtjDJo7moIJ9ucAKoB2bMXqMVzgoiNsGOwSqUreoypQKHLiGfTE_286PnCXS9hWwW3pRVzfQGaLsY0c-U5J6x9R8vtqM8cfSZH7dLPD8_tMMVEe2XLuI3n3_PpZWLDXHEGic9p4YOxgk2TsV9dZ9mBonj_XwJX1kKI1bEMCJSuU__dQUSYqai8dcvSXjvcx381Mi1VHaZs_c1CKcJyXFWatEdMmMsqcG7-VjivHa2sAxhIUPUGMHFzWlhsFuomFGCkxhy0JZ1BjwXpSliwFc4lAY7PTiBZ_7Nw8uFueZq2EEUv-N15uytF-d83RRc0F8DOuS8ntk-v0xt6kUKRuJTHu1l6fiYNFe6ROVorSBWM6_Y4yvaVrC4WhRdjkzFGtrZLT_mb8zYw5GOVAEFJ9R_lS3dDolaEcT5H2RHetNlEBnsKDOyFymqaXZN_W-QVzU0blmy_tYJ7UIpsUPDi9HiV7C4_Q6Yl4uGKAqMRgEVF66B-26kUPdjkd7_34-Q-qMbjbrpZ8HGpBXYUKJuOhYBgjGyVLhCZkGSgjGKsIuxhYZ5DzT1i73g20I_n3T6gMLtK2qk8uy6pE0wJiSbXKDcDf2e_XQUmDeqqWVK0npV86dkHViKGK57lDUgCVxpy1000)](https://editor.plantuml.com/uml/lLRBRjj84BmBu3yqv4Fa0v74co0BGp0YavQZnIQhHCu6M0G8HiCMHMWuJSmCBGj1lYQ7V8X_B3qSogi7DpUl3pwmgwiVLKtgjNN2kBfKKS-k2bq98qgmRgEG_vj27eP6nj3wPbd8bKPhuVbUsb9aj2vq3ixK6FMYtXD8I2-Al3RY_iVzTu8CuSgwGf7TJTIKuN0uAIk59Mg7sSK5V8rwm7-NGgvoGxNE4b9au2HzSPMcepP89aFJ1iv-7xrwyJBgVTjbbbHMf9dpSUXvTSL2o4TddogXzI-Pn-FnRqdQmJmU9y-VlTeDp1frCs6Nc1rK34ByNzLsn7dSajw88qS6BI3CqDmMzp_8mjMTGwEz5VtSqFzeqVI7mmnl2udSYh1GywFTy5b7_CmNa8hg3FffOINt01EzC88FgEO3CjY7av7Yd4jLutR0X-6XFrFSAbzAMGgTsJuSkedhM0z9sc7QMjU5UrFFmppIrxXUadMVbeLxAB9r4DUWsaZa8XdsE_W_O4KX9SpQSe-aAqXtjDJo7moIJ9ucAKoB2bMXqMVzgoiNsGOwSqUreoypQKHLiGfTE_286PnCXS9hWwW3pRVzfQGaLsY0c-U5J6x9R8vtqM8cfSZH7dLPD8_tMMVEe2XLuI3n3_PpZWLDXHEGic9p4YOxgk2TsV9dZ9mBonj_XwJX1kKI1bEMCJSuU__dQUSYqai8dcvSXjvcx381Mi1VHaZs_c1CKcJyXFWatEdMmMsqcG7-VjivHa2sAxhIUPUGMHFzWlhsFuomFGCkxhy0JZ1BjwXpSliwFc4lAY7PTiBZ_7Nw8uFueZq2EEUv-N15uytF-d83RRc0F8DOuS8ntk-v0xt6kUKRuJTHu1l6fiYNFe6ROVorSBWM6_Y4yvaVrC4WhRdjkzFGtrZLT_mb8zYw5GOVAEFJ9R_lS3dDolaEcT5H2RHetNlEBnsKDOyFymqaXZN_W-QVzU0blmy_tYJ7UIpsUPDi9HiV7C4_Q6Yl4uGKAqMRgEVF66B-26kUPdjkd7_34-Q-qMbjbrpZ8HGpBXYUKJuOhYBgjGyVLhCZkGSgjGKsIuxhYZ5DzT1i73g20I_n3T6gMLtK2qk8uy6pE0wJiSbXKDcDf2e_XQUmDeqqWVK0npV86dkHViKGK57lDUgCVxpy1000)
+
+> further diagrams or detailed description is contained in `docs\` files. Consult [File Structure](./README.md#files--directory-structure) to find them.
 
 ---
 
@@ -104,7 +123,7 @@ Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The dat
 2. Install dependencies: `pip install -r requirements.txt`.
 3. Set up the Database (see [QuickBuild](#quickbuild-of-database)).
 4. Create a `.env` file with your credentials (rename [.env.example](.env.example) and fill it in).
-5. Run `python src/auto_scrapper.py` to populate your database.
+5. Run `python src/auto_scraper.py` to populate your database.
 6. Run `python src/main.py` to start the bot.
 
 ---
@@ -126,3 +145,4 @@ This project follows Agile/Scrum principles for development. You can track the R
 
 **Current Focus:**
 - Releasing project to public
+- Preparing for Discord Bot Verification

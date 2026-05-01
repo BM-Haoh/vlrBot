@@ -152,8 +152,7 @@ class DB_handler:
             INSERT INTO mapas_lista (nome, in_pool) VALUES (%s, %s) RETURNING id
         """, (map_name, True))
         return cur.fetchone()[0]
-
-            
+      
     def __get_or_create_comp(self, agents_names, cur):
         agents_ids = [self.agent_dict.get(name.lower().strip()) for name in agents_names]
         agents_ids.sort()  # Ordena os IDs para garantir a consistência na busca

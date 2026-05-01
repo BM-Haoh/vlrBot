@@ -9,7 +9,12 @@ import asyncio
 import discord
 import logging 
 import brain
+import sys
 import os
+
+# alterando a política do loop de eventos
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -37,11 +42,11 @@ comps = {}
 camps = {}
 partidas = []
 mapas_jogados = []
-players = {} # unused
+logic = brain.Brain(times, maps, agents, comps, camps, partidas, mapas_jogados)
 
-def perform_global_reload():
+async def perform_global_reload():
     print("Recarregando dados do banco para a RAM...")
-    res = brain.perform_global_reload()
+    res = await brain.perform_global_reload()
 
     if not isinstance(res, Exception):
         global times, maps, agents, comps, camps, partidas, mapas_jogados
@@ -58,7 +63,9 @@ def perform_global_reload():
 @bot.event
 async def on_ready():
     print(f"We are ready to go in, {bot.user.name}")
-    perform_global_reload() # Carrega os dados do banco para a RAM quando o bot inicia
+    await perform_global_reload() # Carrega os dados do banco para a RAM quando o bot inicia
+
+    logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
 
     try:
 
@@ -70,26 +77,21 @@ async def on_ready():
         print(f'Error syncing commands: {e}')
 
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-
-    await bot.process_commands(message)
-
 # COMANDOS
 '''
                                             INFO_LOADERS 
 '''
 
-@bot.tree.command(name="update_cache", description="Força o reload dos dados", guild=GUILD_ID_INFO)
+@bot.tree.command(name="update_cache", description="Força o reload dos dados", guild=GUILD_ID_INFO) # Comando exclusivo do dono, por isso exclusivo do server de testes tbm
+@app_commands.check(lambda inst: inst.user.id == CREATOR_ID)
 async def update_cache(interaction: discord.Interaction):
-    if interaction.user.id != CREATOR_ID:
-        return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
+    # if interaction.user.id != CREATOR_ID:
+    #     return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
     
     await interaction.response.defer(ephemeral=True) # Resposta visível só para você
-    
-    if (perform_global_reload()):
+
+    if (await perform_global_reload()):
+        logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
         await interaction.followup.send(content="Cache atualizado com sucesso!", ephemeral=True)
     else:
         await interaction.followup.send(content="Erro ao atualizar o cache.", ephemeral=True)
@@ -97,10 +99,14 @@ async def update_cache(interaction: discord.Interaction):
 @tasks.loop(time=target_time)
 async def auto_reload_db():
     print("Executando reload agendado pós-GitHub Actions...")
-    await asyncio.to_thread(perform_global_reload)
 
+    sucesso = await perform_global_reload()
 
-    print("Banco recarregado automaticamente após atualização do GitHub.")
+    if sucesso:
+        logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
+        print("Banco recarregado automaticamente após atualização do GitHub.")
+    else:
+        print("Falha no reload agendado.")
 
 '''
                                             CRIAÇÃO DE INFORMAÇÃO 
@@ -137,11 +143,10 @@ async def auxilio(interaction: discord.Interaction):
     await interaction.edit_original_response(embed=answer)
 
 @bot.tree.command(name="info_time", description="Informação sobre um time", guild=GUILD_ID_INFO)
-async def printer(interaction: discord.Interaction, time_query: str):
+async def info_time(interaction: discord.Interaction, time_query: str):
     # Creating the embed
 
     await interaction.response.defer(ephemeral=False)
-    logic = brain.Brain(times, maps, agents, comps, camps, partidas, mapas_jogados)
     
     # since we have just two case of team name/tag that contains Diacritics, we are treating it alone
     if time_query.lower() in ["kru esports", "kru"]:
@@ -149,7 +154,7 @@ async def printer(interaction: discord.Interaction, time_query: str):
     elif time_query.lower() in ["leviatan"]:
         time_query = "leviatán"
 
-    res = logic.info_time(time_query)
+    res = await logic.info_time(time_query)
 
     if res == 1:
         await interaction.edit_original_response("Erro ao carregar o time.", ephemeral=True)
