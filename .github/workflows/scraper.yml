@@ -29,6 +29,6 @@ jobs:
           timeout_minutes: 10    # Tempo máximo de cada tentativa
           max_attempts: 3        # Tenta até 3 vezes se der erro
           retry_wait_seconds: 60 # Espera 1 minuto entre as tentativas
-          command: python src/auto_scrapper.py
+          command: python src/auto_scraper.py
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
