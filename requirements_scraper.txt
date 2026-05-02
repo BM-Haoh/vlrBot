@@ -1,0 +1,8 @@
+# Automação e Raspagem
+selenium
+pandas
+tqdm
+
+# Driver de Banco de Dados
+psycopg[binary]
+python-dotenv

@@ -21,7 +21,7 @@ jobs:
           cache: 'pip'
 
       - name: Instalar Dependências
-        run: pip install -r requirements.txt
+        run: pip install -r requirements_scraper.txt
 
       - name: Rodar o Scraper com Retry
         uses: nick-fields/retry@v4
