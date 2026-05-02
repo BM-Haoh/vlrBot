@@ -1,0 +1,10 @@
+# Análise de Dados
+pandas
+plotly
+
+# Integração com Discord
+discord.py
+python-dotenv
+
+# Driver de Banco de Dados
+psycopg[binary]
