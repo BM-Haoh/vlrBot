@@ -1,3 +1,5 @@
+# Use this file to compose services locally for development or testing purposes.
+# Production deployment is handled via Docker Hub images and the updater script.
 version: '3.8'
 services:
   bot:
