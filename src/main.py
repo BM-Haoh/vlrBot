@@ -81,7 +81,9 @@ async def on_ready():
 '''
                                             INFO_LOADERS 
 '''
-
+'''
+                                            COMANDO            #0
+'''
 @bot.tree.command(name="update_cache", description="Força o reload dos dados", guild=GUILD_ID_INFO) # Comando exclusivo do dono, por isso exclusivo do server de testes tbm
 @app_commands.check(lambda inst: inst.user.id == CREATOR_ID)
 async def update_cache(interaction: discord.Interaction):
