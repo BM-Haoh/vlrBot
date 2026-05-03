@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  bot:
+    build: .
+    container_name: vlrbot-app
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env

@@ -111,7 +111,10 @@ async def auto_reload_db():
 '''
                                             CRIAÇÃO DE INFORMAÇÃO 
 '''
-@bot.tree.command(name="help_times", description="Tags de pesquisa de time", guild=GUILD_ID_INFO)
+'''
+                                            COMANDO            #1
+'''
+@bot.tree.command(name="help_times", description="Tags de pesquisa de time")
 async def auxilio(interaction: discord.Interaction):
 
     if not times:
@@ -142,7 +145,12 @@ async def auxilio(interaction: discord.Interaction):
 
     await interaction.edit_original_response(embed=answer)
 
-@bot.tree.command(name="info_time", description="Informação sobre um time", guild=GUILD_ID_INFO)
+
+'''
+                                            COMANDO            #2
+'''
+
+@bot.tree.command(name="info_time", description="Informação sobre um time")
 async def info_time(interaction: discord.Interaction, time_query: str):
     # Creating the embed
 
