@@ -68,10 +68,15 @@ async def on_ready():
     logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
 
     try:
-
+        # Sincronizando comandos de testes:
         guild = GUILD_ID_INFO
-        synced = await bot.tree.sync(guild=guild)
-        print(f'Synced {len(synced)} commands to guild {guild.id}')
+        bot.tree.copy_global_to(guild=guild) # O servidores principal terá todos os comandos intantaneamente
+        guild_synced = await bot.tree.sync(guild=guild)
+        print(f'Synced {len(guild_synced)} commands to guild {guild.id}.')
+
+        # Sincronizando comandos globais:
+        global_synced = await bot.tree.sync()
+        print(f'Synced {len(global_synced)} commands to global.')
 
     except Exception as e:
         print(f'Error syncing commands: {e}')
