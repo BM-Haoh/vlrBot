@@ -70,7 +70,8 @@ async def on_ready():
     try:
         # Sincronizando comandos de testes:
         guild = GUILD_ID_INFO
-        bot.tree.copy_global_to(guild=guild) # O servidores principal terá todos os comandos intantaneamente
+        await bot.tree.clear(guild=guild)
+        #bot.tree.copy_global_to(guild=guild) # O servidores principal terá todos os comandos intantaneamente
         guild_synced = await bot.tree.sync(guild=guild)
         print(f'Synced {len(guild_synced)} commands to guild {guild.id}.')
 
