@@ -2,8 +2,8 @@
 ## Functional Requirements (FR):
 |  ID | Requirement | Description | Status |
 | :-: | :---------: | :---------: | :----: |
-| FR01 | Team Tags List | The System shall list all availabre research tags of each professinal team | Implemented |
-them as "Team Stats" | Implemented |
+| FR01 | Team Tags List | The System shall list all available research tags of each professinal team | Implemented |
+| FR02 | Team Stats metrics | The System must calculate the team avarage stats based on each player performance | Implemented |
 | FR03 | Maps Performance Analysis | The System must calculate overall win rates, including specific Attack and Defense win rates, for every map and composition used by a team | Implemented |
 | FR04 | Team Profile Display | The System shall allow users to retrieve and display a comprehensive profile for a selected team. | Implemented (Pending Refactor) |
 | FR05 | Player Performance Benchmarking | The System shall allow users to compare a specific player's stats against VCT league averages | Proposed |
