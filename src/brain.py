@@ -171,7 +171,6 @@ class Brain:
 
                 matches_descript += f"- {match['camp_id']}: {emoji_a} {a}X{b} {emoji_b}\n"
 
-
             #       Embed2          - Creating the description for the embed with the maps in the pool, with win rates for each map and composition of the team
 
             pool = [{"id": mapa, "nome": self.maps[mapa]["nome"]} for mapa in self.maps if self.maps[mapa]["in_pool"]]
@@ -275,10 +274,9 @@ class Brain:
                         
                         descricaoMapa += "\n"
                 mapa['descricao'] = descricaoMapa
-            
             #      EMBED 3 and 4        - Team Stats last tournament
             # If we don't have the players stats of this team in RAM yet, we load them from the database and store them in RAM for future use. If we already have them in RAM, we just use them.
-            if not self.players.get(time_id):
+            if self.players.get(time_id) is None:
                 async with await get_conn() as conn:
                     async with conn.cursor() as cur:
                         await cur.execute("""
@@ -311,9 +309,9 @@ class Brain:
                 self.players[time_id] = stats_table
             
             # if we already have the stats of this team in RAM, we just use them without querying the database again
-            else:
-                stats_table = self.players[time_id]
-            
+            # else:
+            #     stats_table = self.players[time_id]
+
             agg_rules = {
                 "Rating": "mean",
                 "ACS": "mean",
@@ -329,7 +327,7 @@ class Brain:
                 "CLp": "sum"
             }
 
-            df_time = stats_table.groupby("Camp").agg(agg_rules).reset_index()
+            df_time = self.players[time_id].groupby("Camp").agg(agg_rules).reset_index()
 
             return time, matches_descript, time_mapas, df_time
 
