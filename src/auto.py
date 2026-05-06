@@ -284,7 +284,7 @@ def map_treatment(navegador, map):
 
     return atq, round_sequence
 
-class vlr_stealer():
+class tournament_manager():
     '''
     Used to get information from vlr.gg (essentially matches)
 
@@ -716,7 +716,7 @@ class stats_manager():
         return sep_team_player(table)
 
 if __name__ == "__main__":
-    mtc_gtr = vlr_stealer()
+    mtc_gtr = tournament_manager()
 
     json = mtc_gtr.process_camps()
     print(json)

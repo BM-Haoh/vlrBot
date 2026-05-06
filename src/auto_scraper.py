@@ -1,9 +1,9 @@
-from auto import vlr_stealer
+from auto import tournament_manager
 from DB_handler import DB_handler
 
 def run():
     try:
-        mtc_grt = vlr_stealer()
+        mtc_grt = tournament_manager()
         matches = mtc_grt.process_camps()
         
         if matches:

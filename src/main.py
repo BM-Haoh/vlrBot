@@ -35,37 +35,23 @@ CREATOR_ID = int(os.getenv('CREATOR_ID'))
 target_time = time(hour=6, minute=10, tzinfo=timezone.utc)
 
 # Inicializando globais
-times = []
-maps = {}
-agents = {}
-comps = {}
-camps = {}
-partidas = []
-mapas_jogados = []
-logic = brain.Brain(times, maps, agents, comps, camps, partidas, mapas_jogados)
+logic = brain.Brain([], {}, {}, {}, {}, [], [])
 
-async def perform_global_reload():
+async def perform_global_reload(logic : brain.Brain):
     print("Recarregando dados do banco para a RAM...")
-    res = await brain.perform_global_reload()
 
-    if not isinstance(res, Exception):
-        global times, maps, agents, comps, camps, partidas, mapas_jogados
-        times, maps, agents, comps, camps, partidas, mapas_jogados = res
-        
+    if (await brain.perform_global_reload(logic)):
         print("Dados recarregados com sucesso!")
         return 1
-    
     else:
-        print(f"Erro durante o reload: {res}")
+        print(f"Erro durante o reload.")
         return 0
 
 # Events
 @bot.event
 async def on_ready():
     print(f"We are ready to go in, {bot.user.name}")
-    await perform_global_reload() # Carrega os dados do banco para a RAM quando o bot inicia
-
-    logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
+    await perform_global_reload(logic) # Carrega os dados do banco para a RAM quando o bot inicia
 
     try:
         # Sincronizando comandos de testes:
@@ -97,20 +83,16 @@ async def update_cache(interaction: discord.Interaction):
     
     await interaction.response.defer(ephemeral=True) # Resposta visível só para você
 
-    if (await perform_global_reload()):
-        logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
+    if (await perform_global_reload(logic)):
         await interaction.followup.send(content="Cache atualizado com sucesso!", ephemeral=True)
     else:
         await interaction.followup.send(content="Erro ao atualizar o cache.", ephemeral=True)
 
 @tasks.loop(time=target_time)
-async def auto_reload_db():
+async def auto_reload_cache():
     print("Executando reload agendado pós-GitHub Actions...")
 
-    sucesso = await perform_global_reload()
-
-    if sucesso:
-        logic.update_data(times, maps, agents, comps, camps, partidas, mapas_jogados)
+    if (await perform_global_reload(logic)):
         print("Banco recarregado automaticamente após atualização do GitHub.")
     else:
         print("Falha no reload agendado.")
@@ -123,6 +105,8 @@ async def auto_reload_db():
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time")
 async def auxilio(interaction: discord.Interaction):
+
+    times = await logic.get("times")
 
     if not times:
         await interaction.response.send_message("Erro ao carregar os times.", ephemeral=False)

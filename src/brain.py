@@ -58,29 +58,6 @@ async def load_id_mapas_jogados(cur, maps_dict, comps_dict):
     ]
     return mapas_jogados_cache
 
-async def perform_global_reload():
-    '''
-    ## Reloading all data from the database into RAM
-
-    :return: list of dicts (times), dict of dicts (mapas_lista), dict of dicts (agentes), dict of lists (composicoes), dict (campeonatos), list of dicts (partidas), list of dicts (mapas_jogados)
-    '''
-    try:
-        async with await get_conn() as conn:
-            async with conn.cursor() as cur:
-                _times = await load_id_times(cur)
-                _maps = await load_id_maps(cur)
-                _agents = await load_id_agents(cur)
-                _comps = await load_id_comps(cur)
-                _camps = await load_id_camps(cur)
-                _partidas = await load_id_partidas(cur, _camps)
-                _mapas_jogados = await load_id_mapas_jogados(cur, _maps, _comps)
-        
-        return _times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados
-    
-    except Exception as e:
-        print(f"Erro ao recarregar dados: {e}")
-        return None
-
 class Brain:
     def __init__(self, times, maps, agents, comps, camps, partidas, mapas_jogados):
         self.times = times
@@ -92,14 +69,14 @@ class Brain:
         self.mapas_jogados = mapas_jogados
         self.players = {}
 
-    def update_data(self, times, maps, agents, comps, camps, partidas, mapas_jogados):
-        self.times = times
-        self.maps = maps
-        self.agents = agents
-        self.comps = comps
-        self.camps = camps
-        self.partidas = partidas
-        self.mapas_jogados = mapas_jogados
+    def update_data(self, cache):
+        self.times = cache[0]           # times
+        self.maps = cache[1]            # maps
+        self.agents = cache[2]          # agents
+        self.comps = cache[3]           # comps
+        self.camps = cache[4]           # camps
+        self.partidas = cache[5]        # partidas
+        self.mapas_jogados = cache[6]   # mapas_jogados
         self.players = {}
 
     async def info_time(self, time_tag):
@@ -331,8 +308,47 @@ class Brain:
 
             return time, matches_descript, time_mapas, df_time
 
+    async def get(self, var):
+        if var == "times":
+            return self.times
+        elif var == "maps":
+            return self.maps
+        elif var == "agents":
+            return self.agents
+        elif var == "comps":
+            return self.comps
+        elif var == "camps":
+            return self.camps
+        elif var == "partidas":    
+            return self.partidas
+        elif var == "mapas_jogados":
+            return self.mapas_jogados
+        elif var == "players":
+            return self.players
+
+async def perform_global_reload(brain : Brain):
+    '''
+    ## Reloading all data from the database into RAM
+
+    :return: list of dicts (times), dict of dicts (mapas_lista), dict of dicts (agentes), dict of lists (composicoes), dict (campeonatos), list of dicts (partidas), list of dicts (mapas_jogados)
+    '''
+    try:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                _times = await load_id_times(cur)
+                _maps = await load_id_maps(cur)
+                _agents = await load_id_agents(cur)
+                _comps = await load_id_comps(cur)
+                _camps = await load_id_camps(cur)
+                _partidas = await load_id_partidas(cur, _camps)
+                _mapas_jogados = await load_id_mapas_jogados(cur, _maps, _comps)
         
+        brain.update_data((_times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados))
+        return 1
     
+    except Exception as e:
+        print(f"Erro ao recarregar dados: {e}")
+        return 0
 
 if __name__ == "__main__":
     pass

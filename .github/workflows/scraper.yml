@@ -3,7 +3,7 @@ name: VLR Daily Scraper
 on:
   schedule:
     # Roda todo dia às 04:30 UTC
-    - cron: '30 4 * * *'
+    - cron: '30 2 * * *'
   workflow_dispatch: 
 
 jobs:
