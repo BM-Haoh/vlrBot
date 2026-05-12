@@ -31,7 +31,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID')))
 CREATOR_ID = int(os.getenv('CREATOR_ID'))
 
-# setting auto_reload time to 6:10 UTC, which is 3:10 in Brazil, right after the VLR updates their database with the new matches of the day
+# setting auto_reload time to 6:10 UTC, which is 3:10 in Brazil, right after the web scraping
 target_time = time(hour=6, minute=10, tzinfo=timezone.utc)
 
 # Inicializando globais
@@ -57,6 +57,9 @@ async def on_ready():
         # Sincronizando comandos de testes:
         guild = GUILD_ID_INFO
 
+        if not auto_reload_cache.is_running():
+            auto_reload_cache.start()
+
         guild_synced = await bot.tree.sync(guild=guild)
         print(f'Synced {len(guild_synced)} commands to guild {guild.id}.')
 
@@ -81,7 +84,7 @@ async def update_cache(interaction: discord.Interaction):
     # if interaction.user.id != CREATOR_ID:
     #     return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
     
-    await interaction.response.defer(ephemeral=True) # Resposta visível só para você
+    await interaction.response.defer(ephemeral=True)
 
     if (await perform_global_reload(logic)):
         await interaction.followup.send(content="Cache atualizado com sucesso!", ephemeral=True)
