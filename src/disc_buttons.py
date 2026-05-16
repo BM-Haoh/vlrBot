@@ -1,29 +1,5 @@
-from discord.ui import View, Button
+from discord.ui import View
 import discord
-
-class EmbedChangePage(View):
-    def __init__(self, embedList, embedIndex):
-        super().__init__()
-        self.embedList = embedList
-        self.embedIndex = embedIndex
-
-    @discord.ui.button(label="Página Anterior", style=discord.ButtonStyle.primary)
-    async def button_prev(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.defer()
-        if self.embedIndex > 0:
-            self.embedIndex -= 1
-            await interaction.edit_original_response(embed=self.embedList[self.embedIndex])
-        else:
-            await interaction.response.defer()
-
-    @discord.ui.button(label="Próxima Página", style=discord.ButtonStyle.primary)
-    async def button_next(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.defer()
-        if self.embedIndex < len(self.embedList) - 1:
-            self.embedIndex += 1
-            await interaction.edit_original_response(embed=self.embedList[self.embedIndex])
-        else:
-            await interaction.response.defer()
 
 class Menu(discord.ui.Select):
     def __init__(self, embedList):
@@ -68,12 +44,10 @@ class Menu(discord.ui.Select):
                 self.display_message = await interaction.original_response()
 
 
-class MenuView(discord.ui.View):
+class MenuView(View):
     def __init__(self, embedList):
         super().__init__()
         self.add_item(Menu(embedList))
-
-
 
 
 if __name__ == "__main__":
