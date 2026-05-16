@@ -16,6 +16,9 @@ Now the bot also tracks the performance table from each active tournament (linke
 #### v2.2.1
 **Search Normalization:** Users no longer need to include diacritics to find teams. For example, searching for "kru" will now correctly match "KRÜ".
 
+### v2.3.0
+**Navigation:** Replaced button-based pagination with a persistent `discord.ui.Select` menu for the `/info-time` command.
+
 ---
 
 ## Features & Showcase
@@ -144,5 +147,4 @@ To replicate the database on Neon Tech:
 This project follows Agile/Scrum principles for development. You can track the Real-time progress, upcoming features, and bug fixes on my [Github Project Board](https://github.com/users/BM-Haoh/projects/2/views/1).
 
 **Current Focus:**
-- Releasing project to public
-- Preparing for Discord Bot Verification
+- Enhancing info_time command to better UX
