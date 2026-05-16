@@ -4,7 +4,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from discord.ext import tasks
 import pandas as pd
-import disc_buttons
+import disc_buttons as disB
 import asyncio
 import discord
 import logging 
@@ -75,6 +75,15 @@ async def on_ready():
 '''
                                             INFO_LOADERS 
 '''
+
+'''
+                                            TESTE              #0
+'''
+
+# @bot.tree.command(name="menu", description="Displaying a drop down menu", guild=GUILD_ID_INFO)
+# async def myMenu(interaction: discord.Interaction):
+#     await interaction.response.send_message("Mensagem teste 1", view=disB.MenuView())
+
 '''
                                             COMANDO            #0 
 '''
@@ -170,7 +179,6 @@ async def info_time(interaction: discord.Interaction, time_query: str):
     time, matches_decript, time_mapas, time_stats = res
 
     if type(time) == dict:
-        embedIndex = 0
         embedList = []
 
         # Stats for embed1
@@ -180,27 +188,45 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 
         #   CRIANDO EMBED PÁGINA 1
         # Definindo descrição
-        descricao = f"{time.get('regiao')}'s team\n"
+        descricao = f"{time['regiao']}'s team\n"
+
+        embed0 = discord.Embed(title=f"{time['tag']} Embed Book",
+                            description=f"# Escolha uma página para visualizar",
+                            color=discord.Colour(0x1ABC9C))
         
-        embed = discord.Embed(title=f"{time.get('tag')}",
+        embed0.set_thumbnail(url=time['img_url'])
+
+        embed0.add_field(name="Página 1: Overview",
+                         value="Informações gerais do time, contendo:\n- Estatísticas do último campeonato\n- Últimas 5 partidas do time",
+                         inline=True)
+        embed0.add_field(name="Página 2: Mapas",
+                         value="Informações sobre o time nos mapas atualmente na pool, contendo:\n- Composições do time\n- Taxa de vitória no ataque\n- Taxa de vitória da defesa\n- Taxa de vitória no mapa",
+                         inline=True)
+        embed0.add_field(name="Página 3: Estatísticas",
+                         value="Estatísticas do time historicamente, contendo:\n- Média das tabelas de estatísticas de cada campeonato do VCT para o time.",
+                         inline=True)
+        
+        embed0.set_footer(text='Glossário do "Livro" de Embeds')
+
+        embed1 = discord.Embed(title=f"{time['tag']}",
                             description=f"{descricao}### Stats do último campeonato:",
                             color=discord.Colour(0x1ABC9C))
 
-        embed.set_thumbnail(url=time.get("img_url"))
+        embed1.set_thumbnail(url=time['img_url'])
 
         # Stats último camp
         for coluna in colunas:
             if coluna in ["KAST", "HS"]:
-                embed.add_field(name=coluna, value=f"{stats_recente[coluna]*100:.2f}%", inline=True)
+                embed1.add_field(name=coluna, value=f"{stats_recente[coluna]*100:.2f}%", inline=True)
             else:
-                embed.add_field(name=coluna, value=f"{stats_recente[coluna]:.2f}", inline=True)
-        embed.add_field(name="Clutches", value=f"{stats_recente['CLw']}/{stats_recente['CLp']}", inline=True)
+                embed1.add_field(name=coluna, value=f"{stats_recente[coluna]:.2f}", inline=True)
+        embed1.add_field(name="Clutches", value=f"{stats_recente['CLw']}/{stats_recente['CLp']}", inline=True)
 
         # Partidas recentes
-        embed.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", value="\u200b", inline=False) # empty field for spacing
-        embed.add_field(name="**__Últimas Partidas:__**", value=f"{matches_decript}", inline=False)
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", value="\u200b", inline=False) # empty field for spacing
+        embed1.add_field(name="**__Últimas Partidas:__**", value=f"{matches_decript}", inline=False)
 
-        embed.set_footer(text="Informações tiradas do VLR.")
+        embed1.set_footer(text="Informações tiradas do VLR.")
 
         #   CRIANDO EMBED PÁGINA 2 
         embed2 = discord.Embed(title=time.get("tag") + "- Mapas",
@@ -222,11 +248,11 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 
         embed3.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
 
-        embedList.append(embed)
+        embedList.append(embed1)
         embedList.append(embed2)
         embedList.append(embed3)
 
-        await interaction.edit_original_response(embed=embedList[embedIndex], view=disc_buttons.EmbedChangePage(embedList, embedIndex))
+        await interaction.edit_original_response(embed=embed0, view=disB.MenuView(embedList))
     else:
         await interaction.followup.send("Erro ao carregar o time.", ephemeral=True)
 

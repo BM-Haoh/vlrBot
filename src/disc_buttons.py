@@ -25,30 +25,56 @@ class EmbedChangePage(View):
         else:
             await interaction.response.defer()
 
+class Menu(discord.ui.Select):
+    def __init__(self, embedList):
+        self.embedList = embedList
+        self.display_message = None
+
+        options = [
+            discord.SelectOption(
+                label="Overview",
+                value=0,
+                description="Informações gerais do time",
+                emoji="📋"
+            ),
+            discord.SelectOption(
+                label="Maps",
+                value=1,
+                description="atk/def/map win%",
+                emoji="🗺️"
+            ),
+
+            discord.SelectOption(
+                label="Stats",
+                value=2,
+                description="Médias estatísticas do time historicamente",
+                emoji="📊"
+            )
+        ]
+
+        super().__init__(placeholder="Página:", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        embedIndex = int(self.values[0])
+        if self.display_message is None:
+            await interaction.response.send_message(embed=self.embedList[embedIndex])
+            self.display_message = await interaction.original_response()
+        else:
+            try:
+                await self.display_message.edit(embed=self.embedList[embedIndex])
+                await interaction.response.defer()
+            except discord.NotFound:
+                await interaction.response.send_message(embed=self.embedList[embedIndex])
+                self.display_message = await interaction.original_response()
+
+
+class MenuView(discord.ui.View):
+    def __init__(self, embedList):
+        super().__init__()
+        self.add_item(Menu(embedList))
 
 
 
 
 if __name__ == "__main__":
-
-    pass 
-
-
-
-
-#       GEMINI CODE
-
-'''
-class BotaoInteracao(View):
-    def __init__(self, mensagem_inicial):
-        super().__init__()
-        self.mensagem_inicial = mensagem_inicial
-
-    @discord.ui.button(label="Opção A", style=discord.ButtonStyle.primary)
-    async def botao_a(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.edit_message(content=f"{self.mensagem_inicial}\n\nUsuário escolheu a Opção A!", view=None)
-
-    @discord.ui.button(label="Opção B", style=discord.ButtonStyle.secondary)
-    async def botao_b(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.edit_message(content=f"{self.mensagem_inicial}\n\nUsuário escolheu a Opção B!", view=None)
-'''
+    pass
