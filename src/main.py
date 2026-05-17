@@ -258,12 +258,12 @@ async def info_time(interaction: discord.Interaction, time_query: str):
                 value = ""
                 if len(infos) > 1:
                     for info in infos[1:]:
-                        value += f"- {info}"
+                        value += f"- {info}\n"
                 else:
                     name = comp
                     value = "\u200b"
                     
-                embedMapa.add_field(name=name, value=value, inline=False)
+                embedMapa.add_field(name=name, value=value, inline=True)
 
             embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
             embedList.append(embedMapa)

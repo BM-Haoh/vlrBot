@@ -268,7 +268,7 @@ class Brain:
                         mapa['info']['map_'][0] += info2[0]
                         mapa['info']['map_'][1] += info2[1]
 
-                        descricaoMapa += f"Jogado {mapa['comp_played'][counter]} vezes\n|ATK W% = {(info1[0] / info1[2] if info1[2] > 0 else 0) * 100:.2f}%\n|DEF W% = {info1[1] / info1[3] * 100:.2f}%\n|MAP W% = {info2[0] / info2[1] * 100:.2f}%"
+                        descricaoMapa += f"Jogado {mapa['comp_played'][counter]} vezes|ATK W% = {(info1[0] / info1[2] if info1[2] > 0 else 0) * 100:.2f}%|DEF W% = {info1[1] / info1[3] * 100:.2f}%|MAP W% = {info2[0] / info2[1] * 100:.2f}%"
                         
                         descricaoMapa += "\n"
                 mapa['descricao'] = descricaoMapa
