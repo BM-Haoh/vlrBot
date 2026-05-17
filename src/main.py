@@ -199,10 +199,10 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         embed0.add_field(name="Página 1: Overview",
                          value="Informações gerais do time, contendo:\n- Estatísticas do último campeonato\n- Últimas 5 partidas do time",
                          inline=True)
-        embed0.add_field(name="Página 2: Mapas",
-                         value="Informações sobre o time nos mapas atualmente na pool, contendo:\n- Composições do time\n- Taxa de vitória no ataque\n- Taxa de vitória da defesa\n- Taxa de vitória no mapa",
+        embed0.add_field(name="Páginas de 2 a 8: Mapas",
+                         value="Informações sobre o time nos mapas atualmente na pool, contendo:\n- Vezes que o time jogou em cada mapa (por comp)\n- Composições do time\n- Taxa de vitória no ataque(por comp)\n- Taxa de vitória da defesa(por comp)\n- Taxa de vitória no mapa(por comp)",
                          inline=True)
-        embed0.add_field(name="Página 3: Estatísticas",
+        embed0.add_field(name="Página 9: Estatísticas",
                          value="Estatísticas do time historicamente, contendo:\n- Média das tabelas de estatísticas de cada campeonato do VCT para o time.",
                          inline=True)
         
