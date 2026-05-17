@@ -3,8 +3,8 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from discord.ext import tasks
-import pandas as pd
 import disc_buttons as disB
+import pandas as pd
 import asyncio
 import discord
 import logging 
@@ -27,16 +27,17 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# SERVER DE USO DE COMANDOS VISUAIS
+# SERVER DE TESTES + COMANDOS EXCLUSIVOS
 GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID')))
 CREATOR_ID = int(os.getenv('CREATOR_ID'))
 
-# setting auto_reload time to 6:10 UTC, which is 3:10 in Brazil, right after the web scraping
+# auto_reload roda diariamente às 6:10 UTC (3:10 em Brasília), pós web scraping no github actions
 target_time = time(hour=6, minute=10, tzinfo=timezone.utc)
 
 # Inicializando globais
 logic = brain.Brain([], {}, {}, {}, {}, [], [])
 
+# Função de reload
 async def perform_global_reload(logic : brain.Brain):
     print("Recarregando dados do banco para a RAM...")
 
@@ -47,7 +48,8 @@ async def perform_global_reload(logic : brain.Brain):
         print(f"Erro durante o reload.")
         return 0
 
-# Events
+
+# Inicialização do bot
 @bot.event
 async def on_ready():
     print(f"We are ready to go in, {bot.user.name}")
@@ -76,13 +78,7 @@ async def on_ready():
                                             INFO_LOADERS 
 '''
 
-'''
-                                            TESTE              #0
-'''
 
-# @bot.tree.command(name="menu", description="Displaying a drop down menu", guild=GUILD_ID_INFO)
-# async def myMenu(interaction: discord.Interaction):
-#     await interaction.response.send_message("Mensagem teste 1", view=disB.MenuView())
 
 '''
                                             COMANDO            #0 
@@ -90,8 +86,9 @@ async def on_ready():
 @bot.tree.command(name="update_cache", description="Força o reload dos dados", guild=GUILD_ID_INFO) # Comando exclusivo do dono, por isso exclusivo do server de testes tbm
 @app_commands.check(lambda inst: inst.user.id == CREATOR_ID)
 async def update_cache(interaction: discord.Interaction):
-    # if interaction.user.id != CREATOR_ID:
-    #     return await interaction.response.send_message("Apenas o desenvolvedor pode usar isso.", ephemeral=True)
+    '''
+    Command that forces the reload of the data from the database to the RAM. Useful for testing. Restrict to the creator.
+    '''
     
     await interaction.response.defer(ephemeral=True)
 
@@ -102,6 +99,9 @@ async def update_cache(interaction: discord.Interaction):
 
 @tasks.loop(time=target_time)
 async def auto_reload_cache():
+    '''
+    Automatic reload scheduled for 6:10 UTC daily.
+    '''
     print("Executando reload agendado pós-GitHub Actions...")
 
     if (await perform_global_reload(logic)):
@@ -112,12 +112,18 @@ async def auto_reload_cache():
 '''
                                             CRIAÇÃO DE INFORMAÇÃO 
 '''
+
+
+
 '''
                                             COMANDO            #1
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time")
 async def auxilio(interaction: discord.Interaction):
-
+    '''
+    command that lists the tags of the teams for search, separated by region, and with the respective emojis.
+    useful for the user to know how to write the team tag when asked for it in other commands.
+    '''
     times = await logic.get("times")
 
     if not times:
@@ -137,7 +143,7 @@ async def auxilio(interaction: discord.Interaction):
     for team in times:
         if team["regiao"] != pre_region:
             if field_count == 2:
-                answer.add_field(name="\u200b", value="\u200b", inline=False) # empty field for spacing
+                answer.add_field(name="\u200b", value="\u200b", inline=False) # field vazio para espaçamento e separação
             answer.add_field(name=f"**__{pre_region}__**", value=temp_answer, inline=True)
             field_count += 1
             temp_answer = ""
@@ -149,17 +155,18 @@ async def auxilio(interaction: discord.Interaction):
     await interaction.edit_original_response(embed=answer)
 
 
+
 '''
                                             COMANDO            #2
 '''
-
 @bot.tree.command(name="info_time", description="Informação sobre um time")
 async def info_time(interaction: discord.Interaction, time_query: str):
-    # Creating the embed
-
+    '''
+    command that provides information about a team.
+    '''
     await interaction.response.defer(ephemeral=False)
     
-    # since we have just two case of team name/tag that contains Diacritics, we are treating it alone
+    # Devido poucos casos de acentuação nos nomes/tags dos times, hardocode para resolução
     if time_query.lower() in ["kru esports", "kru"]:
         time_query = "krü"
     elif time_query.lower() in ["leviatan"]:
@@ -181,14 +188,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
     if type(time) == dict:
         embedList = []
 
-        # Stats for embed1
-        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
-        idx_mais_recente = time_stats["Camp"].idxmax()
-        stats_recente = time_stats.loc[idx_mais_recente]
-
-        #   CRIANDO EMBED PÁGINA 1
-        # Definindo descrição
-        descricao = f"{time['regiao']}'s team\n"
+        # EMBED 0 - Glossário
 
         embed0 = discord.Embed(title=f"{time['tag']} Embed Book",
                             description=f"# Escolha uma página para visualizar",
@@ -207,6 +207,15 @@ async def info_time(interaction: discord.Interaction, time_query: str):
                          inline=True)
         
         embed0.set_footer(text='Glossário do "Livro" de Embeds')
+        
+        
+        # Stats do Embed 1
+        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+        idx_mais_recente = time_stats["Camp"].idxmax()
+        stats_recente = time_stats.loc[idx_mais_recente]
+
+        # EMBED 1 - Overview
+        descricao = f"{time['regiao']}'s team\n"
 
         embed1 = discord.Embed(title=f"{time['tag']}",
                             description=f"{descricao}### Stats do último campeonato:",
@@ -228,17 +237,38 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 
         embed1.set_footer(text="Informações tiradas do VLR.")
 
-        #   CRIANDO EMBED PÁGINA 2 
-        embed2 = discord.Embed(title=time.get("tag") + "- Mapas",
-                            description=descricao,
-                            color=discord.Colour(0x1ABC9C))
-        
+        # EMBED 2->8 - Mapas
+        pool = []
         for mapa in time_mapas:
-            embed2.add_field(name=f"{mapa['nome']}", value=mapa['descricao'], inline=False)
+            pool.append(mapa["nome"])
 
-        embed2.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
+            mapa_jogado = mapa["info"]["played"]
+            Atk = mapa['info']['atk_'][0] / mapa['info']['atk_'][1] * 100 if mapa['info']['atk_'][1] > 0 else 0
+            Def = mapa['info']['def_'][0] / mapa['info']['def_'][1] * 100 if mapa['info']['def_'][1] > 0 else 0
+            Map = mapa['info']['map_'][0] / mapa['info']['map_'][1] * 100 if mapa['info']['map_'][1] > 0 else 0
 
-        #   CRIANDO EMBED PÁGINA 4 
+            embedMapa = discord.Embed(title=f"{time.get('tag')} - {mapa['nome']}",
+                            description=f"## Informações gerais do mapa:\n- Mapa jogado {mapa_jogado} vezes\n- Taxa de vitória no ataque: {Atk:.2f}%\n- Taxa de vitória na defesa: {Def:.2f}%\n- Taxa de vitória geral no mapa: {Map:.2f}%\n## Composições jogadas no mapa:",
+                            color=discord.Colour(0x1ABC9C))
+            
+            composicoes = mapa["descricao"].split("\n")
+            for comp in composicoes:
+                infos = comp.split("|")
+                name = infos[0]
+                value = ""
+                if len(infos) > 1:
+                    for info in infos[1:]:
+                        value += f"{info}"
+                else:
+                    name = comp
+                    value = "\u200b"
+                    
+                embedMapa.add_field(name=name, value=value, inline=False)
+
+            embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
+            embedList.append(embedMapa)
+
+        # Embed 9 - Estatísticas históricas
         embed3 = discord.Embed(title=time.get("tag") + " - Estatísticas Históricas",
                             description=descricao,
                             color=discord.Colour(0x1ABC9C))
@@ -248,11 +278,10 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 
         embed3.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
 
-        embedList.append(embed1)
-        embedList.append(embed2)
+        embedList.insert(0, embed1)
         embedList.append(embed3)
 
-        await interaction.edit_original_response(embed=embed0, view=disB.MenuView(embedList))
+        await interaction.edit_original_response(embed=embed0, view=disB.MenuView(embedList, pool))
     else:
         await interaction.followup.send("Erro ao carregar o time.", ephemeral=True)
 

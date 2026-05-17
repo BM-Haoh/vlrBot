@@ -156,7 +156,14 @@ class Brain:
                     **m_info,
                     "comps": [],                # [0, 0, 0, 0, 0]
                     "atk_def/rounds": [],       # "9_4_12_4" -> 9 in attack, 4 in defense, 12 in attack, 4 rounds in defense
-                    "Win/game": []              # "5/10" -> 5 wins out of 10 games
+                    "Win/game": [],             # "5/10" -> 5 wins out of 10 games
+                    "info": {
+                        "atk_": [0, 0],
+                        "def_": [0, 0],
+                        "map_": [0, 0],
+                        "played": 0
+                    },
+                    "comp_played": []
                 }
                 for m_id, m_info in self.maps.items()
             }
@@ -218,6 +225,9 @@ class Brain:
                     target["atk_def/rounds"].append(atk_def)
                     win_val = "1/1" if mapa.get("win") == ab else "0/1"
                     target["Win/game"].append(win_val)
+                    target["comp_played"].append(1)
+                    target["info"]["played"] += 1
+
                 
                 else:
                     index = target["comps"].index(comp_val)
@@ -231,6 +241,8 @@ class Brain:
                     v, g = [int(x) for x in target["Win/game"][index].split("/")]
                     v += 1 if mapa.get("win") == ab else 0
                     target["Win/game"][index] = f"{v}/{g+1}"
+                    target["info"]["played"] += 1
+                    target["comp_played"][index] += 1
 
             # Putting descriptions together for each map in the pool, with the compositions used by the team and their respective stats
             time_mapas = []
@@ -238,19 +250,29 @@ class Brain:
                 time_mapas.append(team_maps[map["id"]])
             for mapa in time_mapas:
                 descricaoMapa = ""
+
                 if mapa.get("comps") == []:
                     descricaoMapa += "Sem composições registradas."
                 else:
                     for counter, composicao in enumerate(mapa.get("comps")):
                         for agent in composicao:
                             descricaoMapa += f"{self.agents[agent].get('emoji')} "
-                        
+                        descricaoMapa += "|"
                         info1 = [int(a) for a in mapa.get("atk_def/rounds")[counter].split("_")]
                         info2 = [int(a) for a in mapa.get("Win/game")[counter].split("/")]
-                        descricaoMapa += f" ATK W% = {(info1[0] / info1[2] if info1[2] > 0 else 0) * 100:.2f}% \|\| DEF W% = {info1[1] / info1[3] * 100:.2f}% \|\| MAP W% = {info2[0] / info2[1] * 100:.2f}%"
+                        
+                        mapa['info']['atk_'][0] += info1[0]
+                        mapa['info']['atk_'][1] += info1[2]
+                        mapa['info']['def_'][0] += info1[1]
+                        mapa['info']['def_'][1] += info1[3]
+                        mapa['info']['map_'][0] += info2[0]
+                        mapa['info']['map_'][1] += info2[1]
+
+                        descricaoMapa += f"Jogado {mapa['comp_played'][counter]} vezes\n|ATK W% = {(info1[0] / info1[2] if info1[2] > 0 else 0) * 100:.2f}%\n|DEF W% = {info1[1] / info1[3] * 100:.2f}%\n|MAP W% = {info2[0] / info2[1] * 100:.2f}%"
                         
                         descricaoMapa += "\n"
                 mapa['descricao'] = descricaoMapa
+
             #      EMBED 3 and 4        - Team Stats last tournament
             # If we don't have the players stats of this team in RAM yet, we load them from the database and store them in RAM for future use. If we already have them in RAM, we just use them.
             if self.players.get(time_id) is None:

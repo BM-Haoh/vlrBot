@@ -2,31 +2,37 @@ from discord.ui import View
 import discord
 
 class Menu(discord.ui.Select):
-    def __init__(self, embedList):
+    def __init__(self, embedList, pool):
         self.embedList = embedList
         self.display_message = None
 
-        options = [
-            discord.SelectOption(
-                label="Overview",
-                value=0,
-                description="Informações gerais do time",
-                emoji="📋"
-            ),
-            discord.SelectOption(
-                label="Maps",
-                value=1,
-                description="atk/def/map win%",
-                emoji="🗺️"
-            ),
+        options = []
+        for i, mapa in enumerate(pool):
+            options.append(
+                discord.SelectOption(
+                    label=mapa,
+                    value=i+1,
+                    description=f"Informações sobre o mapa {mapa}",
+                    emoji="🗺️"
+                )
+            )
 
+        options.insert(0, discord.SelectOption(
+            label="Overview",
+            value=0,
+            description="Informações gerais do time",
+            emoji="📋"
+            )
+        )
+
+        options.append(
             discord.SelectOption(
                 label="Stats",
-                value=2,
+                value=len(pool)+1,
                 description="Médias estatísticas do time historicamente",
                 emoji="📊"
             )
-        ]
+        )
 
         super().__init__(placeholder="Página:", min_values=1, max_values=1, options=options)
 
@@ -45,9 +51,9 @@ class Menu(discord.ui.Select):
 
 
 class MenuView(View):
-    def __init__(self, embedList):
+    def __init__(self, embedList, pool):
         super().__init__()
-        self.add_item(Menu(embedList))
+        self.add_item(Menu(embedList, pool))
 
 
 if __name__ == "__main__":
