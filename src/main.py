@@ -213,6 +213,56 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
         idx_mais_recente = time_stats["Camp"].idxmax()
         stats_recente = time_stats.loc[idx_mais_recente]
+        mapas_jogados_geral = 0
+        Atk_geral = [0, 0] # [vitórias, total]
+        Def_geral = [0, 0] # [vitórias, total]
+        Map_geral = [0, 0] # [vitórias, total]
+
+        win = "\u2588\u200a"
+        lose = "\u2591\u200a"
+
+        # EMBED 2->8 - Mapas
+        pool = []
+        for mapa in time_mapas:
+            pool.append(mapa["nome"])
+
+            mapas_jogados_geral += mapa["info"]["played"]
+            Atk_geral[0] += mapa['info']['atk_'][0]
+            Atk_geral[1] += mapa['info']['atk_'][1]
+            Def_geral[0] += mapa['info']['def_'][0]
+            Def_geral[1] += mapa['info']['def_'][1]
+            Map_geral[0] += mapa['info']['map_'][0]
+            Map_geral[1] += mapa['info']['map_'][1]
+
+            mapa_jogado = mapa["info"]["played"]
+            Atk = mapa['info']['atk_'][0] / mapa['info']['atk_'][1] if mapa['info']['atk_'][1] > 0 else 0
+            Def = mapa['info']['def_'][0] / mapa['info']['def_'][1] if mapa['info']['def_'][1] > 0 else 0
+            Map = mapa['info']['map_'][0] / mapa['info']['map_'][1] if mapa['info']['map_'][1] > 0 else 0
+            Atk_emoji = win * int(Atk * 10) + lose * (10 - int(Atk * 10))
+            Def_emoji = win * int(Def * 10) + lose * (10 - int(Def * 10))
+            Map_emoji = win * int(Map * 10) + lose * (10 - int(Map * 10))
+
+            embedMapa = discord.Embed(title=f"{time.get('tag')} - {mapa['nome']}",
+                            description=f"## Informações gerais do mapa:\nMapa jogado {mapa_jogado} vezes\n- Taxa de vitória no ataque: {Atk * 100:.2f}%\n  - {Atk_emoji}\n- Taxa de vitória na defesa: {Def * 100:.2f}%\n  - {Def_emoji}\n- Taxa de vitória geral no mapa: {Map * 100:.2f}%\n  - {Map_emoji}\n## Composições jogadas no mapa:",
+                            color=discord.Colour(0x1ABC9C))
+            
+            composicoes = mapa["descricao"][:-1].split("\n") # [:-1] para remover a última quebra de linha
+            for comp in composicoes[:3]:
+                infos = comp.split("|")
+                name = infos[0]
+                value = ""
+                if len(infos) > 1:
+                    value += f"{infos[1]}\n"
+                    for info in infos[2:]:
+                        value += f"- {info}\n"
+                else:
+                    name = comp
+                    value = "\u200b"
+                    
+                embedMapa.add_field(name=name, value=value, inline=True)
+
+            embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
+            embedList.append(embedMapa)
 
         # EMBED 1 - Overview
         descricao = f"{time['regiao']}'s team\n"
@@ -231,42 +281,28 @@ async def info_time(interaction: discord.Interaction, time_query: str):
                 embed1.add_field(name=coluna, value=f"{stats_recente[coluna]:.2f}", inline=True)
         embed1.add_field(name="Clutches", value=f"{stats_recente['CLw']}/{stats_recente['CLp']}", inline=True)
 
+        # Infos gerais de win rate
+        value = f"Mapas jogados: {mapas_jogados_geral}\n"
+        Atk_ = Atk_geral[0]/Atk_geral[1] if Atk_geral[1] > 0 else 0
+        Atk_emoji = win * int(Atk_ * 10) + lose * (10 - int(Atk_ * 10))
+        Def_ = Def_geral[0]/Def_geral[1] if Def_geral[1] > 0 else 0
+        Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
+        Map_ = Map_geral[0]/Map_geral[1] if Map_geral[1] > 0 else 0
+        Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+        
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", 
+                         value=f"**__Informações Gerais:__**\n{value}", 
+                         inline=False)
+
         # Partidas recentes
-        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", value="\u200b", inline=False) # empty field for spacing
-        embed1.add_field(name="**__Últimas Partidas:__**", value=f"{matches_decript}", inline=False)
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", 
+                         value=f"**__Últimas Partidas:__**\n{matches_decript}", 
+                         inline=False)
 
         embed1.set_footer(text="Informações tiradas do VLR.")
 
-        # EMBED 2->8 - Mapas
-        pool = []
-        for mapa in time_mapas:
-            pool.append(mapa["nome"])
-
-            mapa_jogado = mapa["info"]["played"]
-            Atk = mapa['info']['atk_'][0] / mapa['info']['atk_'][1] * 100 if mapa['info']['atk_'][1] > 0 else 0
-            Def = mapa['info']['def_'][0] / mapa['info']['def_'][1] * 100 if mapa['info']['def_'][1] > 0 else 0
-            Map = mapa['info']['map_'][0] / mapa['info']['map_'][1] * 100 if mapa['info']['map_'][1] > 0 else 0
-
-            embedMapa = discord.Embed(title=f"{time.get('tag')} - {mapa['nome']}",
-                            description=f"## Informações gerais do mapa:\n- Mapa jogado {mapa_jogado} vezes\n- Taxa de vitória no ataque: {Atk:.2f}%\n- Taxa de vitória na defesa: {Def:.2f}%\n- Taxa de vitória geral no mapa: {Map:.2f}%\n## Composições jogadas no mapa:",
-                            color=discord.Colour(0x1ABC9C))
-            
-            composicoes = mapa["descricao"].split("\n")
-            for comp in composicoes:
-                infos = comp.split("|")
-                name = infos[0]
-                value = ""
-                if len(infos) > 1:
-                    for info in infos[1:]:
-                        value += f"- {info}\n"
-                else:
-                    name = comp
-                    value = "\u200b"
-                    
-                embedMapa.add_field(name=name, value=value, inline=True)
-
-            embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
-            embedList.append(embedMapa)
+       
 
         # Embed 9 - Estatísticas históricas
         embed3 = discord.Embed(title=time.get("tag") + " - Estatísticas Históricas",
