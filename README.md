@@ -19,16 +19,28 @@ Now the bot also tracks the performance table from each active tournament (linke
 ### v2.3.0
 **Navigation:** Replaced button-based pagination with a persistent `discord.ui.Select` menu for the `/info-time` command.
 
+### v2.4.0
+**Dropdown changes:** The previous dropdown structure became `Menu(tipo=0)`. A new dropdown type was introduced: `Menu(tipo=1)`. This new type is used to select a custom map pool (minimum of 3 and maximum of 5 maps) before displaying the embed book for the head-to-head feature.
+
+**Command:** `/times_vs` command. Executes a head-to-head comparison between two teams provided via slash command arguments. Upon invocation, it displays a `Menu(tipo=1)` dropdown for map selection. Once confirmed, the bot generates the main interactive interface utilizing a `Menu(tipo=0)` dropdown to navigate through: `Overview` (Performance Summary), `Map Performance`, and `Historical Stats` (Historical records) (Note: internal bot display names are in Portuguese or slightly different). This interface operates similarly to the `/info_time` command. More information under the [Features & Showcase](#features--showcase) section.
+
 ---
 
 ## Features & Showcase
+
+### **Search Assistance (`/help_times`)**
+To ensure precision, this command lists all available teams and their corresponding tags, helping users find exactly what they are looking for.
+
+<p align="center">
+  <img src="assets/screenshots/help_times.png" width="40%" />
+</p>
 
 ### **Team Analysis (`/info_time`)**
 The core command of the bot. It provides a multi-page "book" with deep insights into VCT teams.
 
 - **Page 1: Performance Summary**: Shows average stats from the latest tournament (e.g. Rating, ACS, KAST, ADR) and the team's match history
-- **Page 2: Map Performance**: Displays win rates for each composition used in the current map pool, including Attack vs. Defense efficiency.
-- **Page 3: Historical records**: Average stats but using the mean of each tournament registered.
+- **Pages 2->8: Map Performance**: Displays win rates for the last 3 compositions used in the current map pool, including Attack vs. Defense efficiency.
+- **Page 9: Historical records**: Average stats but using the mean of each tournament registered.
 
 <table border="0">
   <tr>
@@ -37,19 +49,46 @@ The core command of the bot. It provides a multi-page "book" with deep insights 
     </td>
     <td valign="top" width="50%">
       <img src="assets/screenshots/info_time2.png" alt="Map Statistics" style="width:100%;">
+      <img src="assets/screenshots/info_time3.png" alt="Historical records" style="width:100%;">
     </td>
   </tr>
 </table>
 
-> **Note:** Page 3 (Historical records) follows the same visual layout as Page 1. Thats why it's not shown. In the section below, we have links for all important files with description. If interested, look for `Screenshots`
+### **Head to Head Comparison (`/times_vs`)**
+An advanced comparison command that merges data from two distinct `/info_time` targets into a single, unified Embed Book for enhanced matchup visualization.
 
-### **Search Assistance (`help_times`)**
-To ensure precision, this command lists all available teams and their corresponding tags, helping users find exactly what they are looking for.
+- **First Page: Performance Summary (Overview)**: Side-by-side metric comparison from the latest tournament and recent match histories.
+- **Intermediary Pages: Map Performance**: Matchup-specific analytics comparing win rates and side advantages (Attack vs. Defense efficiency) on chosen maps.
+- **Final Page: Historical Records**: Lifetime average stats compared across all database records.
 
-<p align="center">
-  <img src="assets/screenshots/help_times.png" width="40%" />
-</p>
+<table border="0">
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/times_vs0.png" alt="First Response" style="width:100%;">
+      <img src="assets/screenshots/dropdown0_times_vs.png" alt="Dropdown type 1 working" style="width:100%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/times_vs1.png" alt="Versus Embed Book" style="width:90%;">
+      <img src="assets/screenshots/dropdown1_times_vs.png" alt="Dropdown type 0 working" style="width:60%;">
+    </td>
+  </tr>
+</table>
 
+> Note: Above we have the first response of the bot, asking the maps for comparison with `Menu(tipo=1)`
+
+<table border="0">
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/times_vs2.png" alt="Teams Stats Comparison" style="width:60%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/times_vs3.png" alt="Map comparison" style="width:80%;">
+      <img src="assets/screenshots/times_vs4.png" alt="Historical records comparison" style="width:70%;">
+    </td>
+  </tr>
+</table>
+
+> Note: Above we have each page of the `Versus Embed Book`
 
 ---
 

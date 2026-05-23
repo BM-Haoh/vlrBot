@@ -16,7 +16,6 @@ class Menu(discord.ui.Select):
                         discord.SelectOption(
                             label=mapa,
                             value=i+1,
-                            description=f"Informações sobre o mapa {mapa}",
                             emoji="🗺️"
                         )
                     )

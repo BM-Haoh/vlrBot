@@ -493,11 +493,11 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
 
             # sessão time 1
             value1 = f"Mapa jogado {mapa_jogado1} vezes\n- ATK w%: {Atk1 * 100:.2f}%\n  - {Atk_emoji1}\n- DEF w%: {Def1 * 100:.2f}%\n  - {Def_emoji1}\n- MAP W%: {Map1 * 100:.2f}%\n  - {Map_emoji1}\n"
-            embedMapa.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):", value=value1, inline=True)
+            embedMapa.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", value=value1, inline=True)
 
             # Sessão time 2
             value2 = f"Mapa jogado {mapa_jogado2} vezes\n- ATK w%: {Atk2 * 100:.2f}%\n  - {Atk_emoji2}\n- DEF w%: {Def2 * 100:.2f}%\n  - {Def_emoji2}\n- MAP W%: {Map2 * 100:.2f}%\n  - {Map_emoji2}\n"
-            embedMapa.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):", value=value2, inline=True)
+            embedMapa.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", value=value2, inline=True)
             
             
             # Sessão geral comps
@@ -564,7 +564,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             else:
                 value += f"{stats_recente1[coluna]:.2f}\n"
         value += f"{stats_recente1['CLw']}/{stats_recente1['CLp']}"
-        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):",
+        embed1.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):",
                          value=value,
                          inline=True)
 
@@ -576,7 +576,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             else:
                 value += f"{stats_recente2[coluna]:.2f}\n"
         value += f"{stats_recente2['CLw']}/{stats_recente2['CLp']}"
-        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):",
+        embed1.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):",
                          value=value,
                          inline=True)
 
@@ -595,7 +595,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
         
         value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
-        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):", 
+        embed1.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", 
                          value=f"{value}", 
                          inline=True)
         
@@ -609,7 +609,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
 
         value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
-        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):", 
+        embed1.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", 
                          value=f"{value}", 
                          inline=True)
 
@@ -624,7 +624,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         for match in matches_descript:
             info = match.split(": ")[-1]
             value += f"- {info}\n"
-        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')})", value=value[:-1], inline=True)
+        embed1.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')})", value=value[:-1], inline=True)
 
         # Sessão time 2
         matches_descript = matches_decript2[:-1].split("\n")
@@ -632,7 +632,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         for match in matches_descript:
             info = match.split(": ")[-1]
             value += f"- {info}\n"
-        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')})", value=value[:-1], inline=True)
+        embed1.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')})", value=value[:-1], inline=True)
 
         embed1.set_footer(text="Informações tiradas do VLR.")
 
@@ -664,7 +664,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             else:
                 value += f"{time_stats1[coluna].mean():.2f}\n"
         value += f"{time_stats1['CLw'].sum()}/{time_stats1['CLp'].sum()}"
-        embed3.add_field(name=f"{time1.get('emoji')}({time1.get('tag')})",
+        embed3.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')})",
                          value=value,
                          inline=True)
         
@@ -676,7 +676,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             else:
                 value += f"{time_stats2[coluna].mean():.2f}\n"
         value += f"{time_stats2['CLw'].sum()}/{time_stats2['CLp'].sum()}"
-        embed3.add_field(name=f"{time2.get('emoji')}({time2.get('tag')})",
+        embed3.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')})",
                          value=value,
                          inline=True)
         
