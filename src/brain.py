@@ -149,8 +149,8 @@ class Brain:
                 matches_descript += f"- {match['camp_id']}: {emoji_a} {a}X{b} {emoji_b}\n"
 
             #       Embed2          - Creating the description for the embed with the maps in the pool, with win rates for each map and composition of the team
-
             pool = [{"id": mapa, "nome": self.maps[mapa]["nome"]} for mapa in self.maps if self.maps[mapa]["in_pool"]]
+            
             team_maps = {
                 m_id: {
                     **m_info,

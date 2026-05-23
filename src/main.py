@@ -112,9 +112,42 @@ async def auto_reload_cache():
 '''
                                             CRIAÇÃO DE INFORMAÇÃO 
 '''
-
-
-
+'''
+                                            Teste            #1
+'''
+@bot.tree.command(name="teste", description="Comando de teste para desenvolvimento", guild=GUILD_ID_INFO)
+async def teste(interaction: discord.Interaction):
+    embed = discord.Embed(title="Teste", description="testando embed", color=discord.Colour(0x1ABC9C))
+    value = ""
+    for coluna in ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS", "Clutches"]:
+        value += f"{coluna}\n"
+    embed.add_field(name="Stat:",
+                    value=value[:-1],
+                    inline=True
+                )
+    value = ""
+    for coluna in [1.23, 234.5, 1.05, 0.65, 150.3, 0.35, 0.25, 0.05, 0.02, 0.45, "3/5"]:
+        value += f"{coluna}\n"
+    embed.add_field(name="time1",
+                    value=value[:-1],
+                    inline=True)
+    value = ""
+    for coluna in [1.10, 220.0, 0.95, 0.60, 140.0, 0.30, 0.20, 0.04, 0.01, 0.40, "2/4"]:
+        value += f"{coluna}\n"
+    embed.add_field(name="time2",
+                    value=value[:-1],
+                    inline=True)
+    await interaction.response.send_message(embed=embed)
+'''
+                                            Teste            #1
+'''
+@bot.tree.command(name="teste2", description="Comando de teste para desenvolvimento", guild=GUILD_ID_INFO)
+async def teste2(interaction: discord.Interaction):
+    await interaction.response.send_message(view=disB.MenuView(
+        embedList=[discord.Embed(title="Teste 2.0"), discord.Embed(title="Teste 2.1"), discord.Embed(title="Teste 2.2")], 
+        pool=["mapa1", "mapa2", "mapa3", "mapa4", "mapa5", "mapa6", "mapa7"],
+        type=1), ephemeral=True)
+    pass
 '''
                                             COMANDO            #1
 '''
@@ -197,7 +230,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         embed0.set_thumbnail(url=time['img_url'])
 
         embed0.add_field(name="Página 1: Overview",
-                         value="Informações gerais do time, contendo:\n- Estatísticas do último campeonato\n- Últimas 5 partidas do time",
+                         value="Informações gerais do time, contendo:\n- Estatísticas do último campeonato\n- Win rates gerais\n- Últimas 5 partidas do time",
                          inline=True)
         embed0.add_field(name="Páginas de 2 a 8: Mapas",
                          value="Informações sobre o time em cada mapa, contendo:\n- Composições do time\n- Taxa de vitória no ataque\n- Taxa de vitória da defesa\n- Taxa de vitória no mapa",
@@ -291,12 +324,12 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
         
         value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
-        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", 
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
                          value=f"**__Informações Gerais:__**\n{value}", 
                          inline=False)
 
         # Partidas recentes
-        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", 
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
                          value=f"**__Últimas Partidas:__**\n{matches_decript}", 
                          inline=False)
 
@@ -321,8 +354,342 @@ async def info_time(interaction: discord.Interaction, time_query: str):
     else:
         await interaction.followup.send("Erro ao carregar o time.", ephemeral=True)
 
+'''
+                                            COMANDO            #3
+'''
+@bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando pode demorar um pouco)", guild=GUILD_ID_INFO)
+async def times_vs(interaction: discord.Interaction, time_query_1: str, time_query_2: str):
+    '''
+    command that provides information about a team.
+    '''
+    await interaction.response.defer(ephemeral=False)
+
+    # Devido poucos casos de acentuação nos nomes/tags dos times, hardocode para resolução
+    if time_query_1.lower() in ["kru esports", "kru"]:
+        time_query_1 = "krü"
+    elif time_query_1.lower() in ["leviatan"]:
+        time_query_1 = "leviatán"
+
+    if time_query_2.lower() in ["kru esports", "kru"]:
+        time_query_2 = "krü"
+    elif time_query_2.lower() in ["leviatan"]:
+        time_query_2 = "leviatán"
+
+    res1 = await logic.info_time(time_query_1)
+    res2 = await logic.info_time(time_query_2)
+
+    if res1 == 1 or res2 == 1:
+        await interaction.edit_original_response("Erro ao carregar um dos times.", ephemeral=True)
+        return
+    
+    if res1 == 2:
+        await interaction.edit_original_response("O primeiro time não foi encontrado. Use /help_times para ver as tags de pesquisa.", ephemeral=True)
+        return
+    if res2 == 2:
+        await interaction.edit_original_response("O segundo time não foi encontrado. Use /help_times para ver as tags de pesquisa.", ephemeral=True)
+        return
+    
+
+    time1, matches_decript1, time_mapas1, time_stats1 = res1
+    time2, matches_decript2, time_mapas2, time_stats2 = res2
+
+    if type(time1) == dict and type(time2) == dict:
+        embedList = []
+
+        # MENSAGEM INICIAL - INSTRUÇÃO
+        mensagem = f"Times {time1.get('emoji')} ({time1.get('tag')}) e {time2.get('emoji')} ({time2.get('tag')}) selecionados.\nEscolha a map pool para comparação:"
+        descricao = f"{time1['regiao']} x {time2['regiao']}\n"
+
+        # EMBED 0 - Glossário
+
+        embed0 = discord.Embed(title=f"Versus Embed Book: {time1.get('tag')} x {time2.get('tag')}",
+                            description=f"# Escolha uma página para visualizar",
+                            color=discord.Colour(0x1ABC9C))
+
+        embed0.add_field(name="Primeira página: Overview",
+                         value="Informações gerais dos times, contendo:\n- Estatísticas do último campeonato\n- Win rates gerais",
+                         inline=True)
+        embed0.add_field(name="Páginas intermediárias: Mapas",
+                         value="Informações sobre os times em cada mapa, contendo:\n- Última composição utilizada\n- Taxa de vitória no ataque\n- Taxa de vitória da defesa\n- Taxa de vitória no mapa",
+                         inline=True)
+        embed0.add_field(name="Última página: Estatísticas",
+                         value="Estatísticas dos times historicamente, contendo:\n- Média das tabelas de estatísticas de cada campeonato do VCT para cada time.",
+                         inline=True)
+        
+        embed0.set_footer(text='Glossário do "Livro" de Embeds')
+
+        
+        # Stats do Embed 1
+        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+
+        # Informações para criação do embed: Sessão time 1
+        idx_mais_recente1 = time_stats1["Camp"].idxmax()
+        stats_recente1 = time_stats1.loc[idx_mais_recente1]
+        mapas_jogados_geral1 = 0
+        Atk_geral1 = [0, 0] # [vitórias, total]
+        Def_geral1 = [0, 0] # [vitórias, total]
+        Map_geral1 = [0, 0] # [vitórias, total]
+
+        # Informações para criação do embed: Sessão time 2
+        idx_mais_recente2 = time_stats2["Camp"].idxmax()
+        stats_recente2 = time_stats2.loc[idx_mais_recente2]
+        mapas_jogados_geral2 = 0
+        Atk_geral2 = [0, 0]
+        Def_geral2 = [0, 0]
+        Map_geral2 = [0, 0]
+
+        win = "\u2588\u200a"
+        lose = "\u2591\u200a"
+
+        # EMBED 2->8 - Mapas
+        pool = []
+        for mapa1, mapa2 in zip(time_mapas1, time_mapas2):
+            pool.append(mapa1["nome"])
+
+            # Sessão time 1
+            mapas_jogados_geral1 += mapa1["info"]["played"]
+            Atk_geral1[0] += mapa1['info']['atk_'][0]
+            Atk_geral1[1] += mapa1['info']['atk_'][1]
+            Def_geral1[0] += mapa1['info']['def_'][0]
+            Def_geral1[1] += mapa1['info']['def_'][1]
+            Map_geral1[0] += mapa1['info']['map_'][0]
+            Map_geral1[1] += mapa1['info']['map_'][1]
+
+            # Sessão time 2
+            mapas_jogados_geral2 += mapa2["info"]["played"]
+            Atk_geral2[0] += mapa2['info']['atk_'][0]
+            Atk_geral2[1] += mapa2['info']['atk_'][1]
+            Def_geral2[0] += mapa2['info']['def_'][0]
+            Def_geral2[1] += mapa2['info']['def_'][1]
+            Map_geral2[0] += mapa2['info']['map_'][0]
+            Map_geral2[1] += mapa2['info']['map_'][1]
+
+            # Sessão time 1
+            mapa_jogado1 = mapa1["info"]["played"]
+            Atk1 = mapa1['info']['atk_'][0] / mapa1['info']['atk_'][1] if mapa1['info']['atk_'][1] > 0 else 0
+            Def1 = mapa1['info']['def_'][0] / mapa1['info']['def_'][1] if mapa1['info']['def_'][1] > 0 else 0
+            Map1 = mapa1['info']['map_'][0] / mapa1['info']['map_'][1] if mapa1['info']['map_'][1] > 0 else 0
+            Atk_emoji1 = win * int(Atk1 * 10) + lose * (10 - int(Atk1 * 10))
+            Def_emoji1 = win * int(Def1 * 10) + lose * (10 - int(Def1 * 10))
+            Map_emoji1 = win * int(Map1 * 10) + lose * (10 - int(Map1 * 10))
+
+            # Sessão time 2
+            mapa_jogado2 = mapa2["info"]["played"]
+            Atk2 = mapa2['info']['atk_'][0] / mapa2['info']['atk_'][1] if mapa2['info']['atk_'][1] > 0 else 0
+            Def2 = mapa2['info']['def_'][0] / mapa2['info']['def_'][1] if mapa2['info']['def_'][1] > 0 else 0
+            Map2 = mapa2['info']['map_'][0] / mapa2['info']['map_'][1] if mapa2['info']['map_'][1] > 0 else 0
+            Atk_emoji2 = win * int(Atk2 * 10) + lose * (10 - int(Atk2 * 10))
+            Def_emoji2 = win * int(Def2 * 10) + lose * (10 - int(Def2 * 10))
+            Map_emoji2 = win * int(Map2 * 10) + lose * (10 - int(Map2 * 10))
+
+            # Sessão geral
+            embedMapa = discord.Embed(title=f"{time1.get('tag')} Vs. {time2.get('tag')} - {mapa1['nome']}",
+                            description=f"{descricao}",
+                            color=discord.Colour(0x1ABC9C))
+
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                                value=f"**__Informações Gerais:__**", 
+                                inline=False)
+
+            # sessão time 1
+            value1 = f"Mapa jogado {mapa_jogado1} vezes\n- ATK w%: {Atk1 * 100:.2f}%\n  - {Atk_emoji1}\n- DEF w%: {Def1 * 100:.2f}%\n  - {Def_emoji1}\n- MAP W%: {Map1 * 100:.2f}%\n  - {Map_emoji1}\n"
+            embedMapa.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):", value=value1, inline=True)
+
+            # Sessão time 2
+            value2 = f"Mapa jogado {mapa_jogado2} vezes\n- ATK w%: {Atk2 * 100:.2f}%\n  - {Atk_emoji2}\n- DEF w%: {Def2 * 100:.2f}%\n  - {Def_emoji2}\n- MAP W%: {Map2 * 100:.2f}%\n  - {Map_emoji2}\n"
+            embedMapa.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):", value=value2, inline=True)
+            
+            
+            # Sessão geral comps
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                                value=f"**__Composições mais recentes:__**\n", 
+                                inline=False)
+            
+            # Sessão comp time 1
+            comp = mapa1["descricao"][:-1].split("\n")[0] # [:-1] para remover a última quebra de linha
+            infos = comp.split("|")
+            name = infos[0]
+            value = ""
+            if len(infos) > 1:
+                value += f"{infos[1]}\n"
+                for info in infos[2:]:
+                    value += f"- {info}\n"
+            else:
+                name = comp
+                value = "\u200b"
+            embedMapa.add_field(name=f"{time1.get('emoji')}: {name}", value=value, inline=True)
+
+            # Sessão comp time 2
+            comp = mapa2["descricao"][:-1].split("\n")[0] # [:-1] para remover a última quebra de linha
+            infos = comp.split("|")
+            name = infos[0]
+            value = ""
+            if len(infos) > 1:
+                value += f"{infos[1]}\n"
+                for info in infos[2:]:
+                    value += f"- {info}\n"
+            else:
+                name = comp
+                value = "\u200b"
+            embedMapa.add_field(name=f"{time2.get('emoji')}: {name}", value=value, inline=True)
+
+            embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
+            embedList.append(embedMapa)
+
+        # EMBED 1 - Overview
+
+        embed1 = discord.Embed(title=f"{time1['tag']} Vs. {time2['tag']}",
+                            description=f"{descricao}",
+                            color=discord.Colour(0x1ABC9C))
+
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                         value=f"**__Stats Último Campeonato:__**\n",
+                         inline=False)
+
+        # Stats último camp
+        # Sessão Geral:
+        value = ""
+        for coluna in colunas:
+            value += f"{coluna}\n"
+        value += "Clutches"
+        embed1.add_field(name="Stat:",
+                         value=value,
+                         inline=True)
+
+        # Sessão Time 1
+        value = ""
+        for coluna in colunas:
+            if coluna in ["KAST", "HS"]:
+                value += f"{stats_recente1[coluna]*100:.2f}%\n"
+            else:
+                value += f"{stats_recente1[coluna]:.2f}\n"
+        value += f"{stats_recente1['CLw']}/{stats_recente1['CLp']}"
+        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):",
+                         value=value,
+                         inline=True)
+
+        # Sessão Time 2
+        value = ""
+        for coluna in colunas:
+            if coluna in ["KAST", "HS"]:
+                value += f"{stats_recente2[coluna]*100:.2f}%\n"
+            else:
+                value += f"{stats_recente2[coluna]:.2f}\n"
+        value += f"{stats_recente2['CLw']}/{stats_recente2['CLp']}"
+        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):",
+                         value=value,
+                         inline=True)
+
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                         value=f"**__Comparação Geral:__**\n",
+                         inline=False)
+
+        # Infos gerais de win rate
+        # Sessão time 1
+        value = f"Mapas jogados: {mapas_jogados_geral1}\n"
+        Atk_ = Atk_geral1[0]/Atk_geral1[1] if Atk_geral1[1] > 0 else 0
+        Atk_emoji = win * int(Atk_ * 10) + lose * (10 - int(Atk_ * 10))
+        Def_ = Def_geral1[0]/Def_geral1[1] if Def_geral1[1] > 0 else 0
+        Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
+        Map_ = Map_geral1[0]/Map_geral1[1] if Map_geral1[1] > 0 else 0
+        Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+        
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')}):", 
+                         value=f"{value}", 
+                         inline=True)
+        
+        # Sessão time 2
+        value = f"Mapas jogados: {mapas_jogados_geral2}\n"
+        Atk_ = Atk_geral2[0]/Atk_geral2[1] if Atk_geral2[1] > 0 else 0
+        Atk_emoji = win * int(Atk_ * 10) + lose * (10 - int(Atk_ * 10))
+        Def_ = Def_geral2[0]/Def_geral2[1] if Def_geral2[1] > 0 else 0
+        Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
+        Map_ = Map_geral2[0]/Map_geral2[1] if Map_geral2[1] > 0 else 0
+        Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')}):", 
+                         value=f"{value}", 
+                         inline=True)
+
+        # Partidas recentes
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
+                         value=f"**__Últimas Partidas:__**", 
+                         inline=False)
+        
+        # Sessão time 1
+        matches_descript = matches_decript1[:-1].split("\n")
+        value = ""
+        for match in matches_descript:
+            info = match.split(": ")[-1]
+            value += f"- {info}\n"
+        embed1.add_field(name=f"{time1.get('emoji')}({time1.get('tag')})", value=value[:-1], inline=True)
+
+        # Sessão time 2
+        matches_descript = matches_decript2[:-1].split("\n")
+        value = ""
+        for match in matches_descript:
+            info = match.split(": ")[-1]
+            value += f"- {info}\n"
+        embed1.add_field(name=f"{time2.get('emoji')}({time2.get('tag')})", value=value[:-1], inline=True)
+
+        embed1.set_footer(text="Informações tiradas do VLR.")
 
 
+        # Embed 9 - Estatísticas históricas
+        embed3 = discord.Embed(title=f"{time1.get('tag')} Vs. {time2.get('tag')} - Estatísticas Históricas",
+                            description=f"{descricao}",
+                            color=discord.Colour(0x1ABC9C))
+        
+        embed3.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                         value=" ",
+                         inline=False)
+
+        # Stats históricos
+        # Sessão Geral:
+        value = ""
+        for coluna in colunas:
+            value += f"{coluna}\n"
+        value += "Clutches"
+        embed3.add_field(name="Stat:",
+                         value=value,
+                         inline=True)
+        
+        # Sessão Time 1
+        value = ""
+        for coluna in colunas:
+            if coluna in ["KAST", "HS"]:
+                value += f"{time_stats1[coluna].mean()*100:.2f}%\n"
+            else:
+                value += f"{time_stats1[coluna].mean():.2f}\n"
+        value += f"{time_stats1['CLw'].sum()}/{time_stats1['CLp'].sum()}"
+        embed3.add_field(name=f"{time1.get('emoji')}({time1.get('tag')})",
+                         value=value,
+                         inline=True)
+        
+        # Sessão Time 2
+        value = ""
+        for coluna in colunas:
+            if coluna in ["KAST", "HS"]:
+                value += f"{time_stats2[coluna].mean()*100:.2f}%\n"
+            else:
+                value += f"{time_stats2[coluna].mean():.2f}\n"
+        value += f"{time_stats2['CLw'].sum()}/{time_stats2['CLp'].sum()}"
+        embed3.add_field(name=f"{time2.get('emoji')}({time2.get('tag')})",
+                         value=value,
+                         inline=True)
+        
+
+        embed3.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
+
+        embedList.insert(0, embed1)
+        embedList.insert(0, embed0)
+        embedList.append(embed3)
+
+        await interaction.edit_original_response(content=mensagem, view=disB.MenuView(embedList, pool, tipo=1))
+    else:
+        await interaction.followup.send("Erro ao carregar um dos times.", ephemeral=True)
 
 
 
