@@ -357,7 +357,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 '''
                                             COMANDO            #3
 '''
-@bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando pode demorar um pouco)", guild=GUILD_ID_INFO)
+@bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando pode demorar um pouco)")
 async def times_vs(interaction: discord.Interaction, time_query_1: str, time_query_2: str):
     '''
     command that provides information about a team.
