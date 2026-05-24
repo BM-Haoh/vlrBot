@@ -113,42 +113,6 @@ async def auto_reload_cache():
                                             CRIAÇÃO DE INFORMAÇÃO 
 '''
 '''
-                                            Teste            #1
-'''
-@bot.tree.command(name="teste", description="Comando de teste para desenvolvimento", guild=GUILD_ID_INFO)
-async def teste(interaction: discord.Interaction):
-    embed = discord.Embed(title="Teste", description="testando embed", color=discord.Colour(0x1ABC9C))
-    value = ""
-    for coluna in ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS", "Clutches"]:
-        value += f"{coluna}\n"
-    embed.add_field(name="Stat:",
-                    value=value[:-1],
-                    inline=True
-                )
-    value = ""
-    for coluna in [1.23, 234.5, 1.05, 0.65, 150.3, 0.35, 0.25, 0.05, 0.02, 0.45, "3/5"]:
-        value += f"{coluna}\n"
-    embed.add_field(name="time1",
-                    value=value[:-1],
-                    inline=True)
-    value = ""
-    for coluna in [1.10, 220.0, 0.95, 0.60, 140.0, 0.30, 0.20, 0.04, 0.01, 0.40, "2/4"]:
-        value += f"{coluna}\n"
-    embed.add_field(name="time2",
-                    value=value[:-1],
-                    inline=True)
-    await interaction.response.send_message(embed=embed)
-'''
-                                            Teste            #1
-'''
-@bot.tree.command(name="teste2", description="Comando de teste para desenvolvimento", guild=GUILD_ID_INFO)
-async def teste2(interaction: discord.Interaction):
-    await interaction.response.send_message(view=disB.MenuView(
-        embedList=[discord.Embed(title="Teste 2.0"), discord.Embed(title="Teste 2.1"), discord.Embed(title="Teste 2.2")], 
-        pool=["mapa1", "mapa2", "mapa3", "mapa4", "mapa5", "mapa6", "mapa7"],
-        type=1), ephemeral=True)
-    pass
-'''
                                             COMANDO            #1
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time")
