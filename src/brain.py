@@ -32,12 +32,12 @@ async def load_id_comps(cur):
     return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in rows}
         
 async def load_id_camps(cur):
-    await cur.execute("SELECT id, nome FROM campeonatos")
+    await cur.execute("SELECT id, nome FROM campeonatos ORDER BY id ASC")
     rows = await cur.fetchall()
     return {int(id): nome for id, nome in rows}
 
 async def load_id_partidas(cur, camps_dict):
-    await cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas")
+    await cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas ORDER BY id DESC")
     rows = await cur.fetchall()
     partidas_cache = [
         {"id": r[0], "camp_id": camps_dict.get(r[1]), "timeA/B": [r[2], r[3]], "vencedor_time_letra": r[4], "pickban": json.loads(r[5])} 
@@ -46,7 +46,7 @@ async def load_id_partidas(cur, camps_dict):
     return partidas_cache
 
 async def load_id_mapas_jogados(cur, maps_dict, comps_dict):
-    await cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados")
+    await cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados ORDER BY id DESC")
     rows = await cur.fetchall()
     mapas_jogados_cache = [
         {
