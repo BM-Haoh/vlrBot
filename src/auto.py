@@ -349,7 +349,7 @@ class tournament_manager():
                 self.browser.get(item.get_attribute("href"))
                 break
 
-        if len(self.browser.find_element(By.CLASS_NAME, 'wf-subnav') \
+        if len(self.browser.find_element(By.CLASS_NAME, 'opt--all') \
                 .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
             # Stage category identified, changing the option of it to "All"
             self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
@@ -444,7 +444,7 @@ class tournament_manager():
             # When they have both, it will be 1, else 0 
             # (If it has "Stage" but "All" is selected, we don't have to treat this section, 
             # and it will ignore the stage category)
-        if len(self.browser.find_element(By.CLASS_NAME, 'wf-subnav') \
+        if len(self.browser.find_element(By.CLASS_NAME, 'opt') \
                            .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
             # Stage category identified, changing the option of it to "All"
             self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
