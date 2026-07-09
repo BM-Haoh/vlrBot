@@ -1,6 +1,7 @@
 venv/
 .venv/
 __pycache__/
+website/
 *.pyc
 *.ipynb
 
@@ -9,7 +10,7 @@ auto.py
 DB_handler.py
 
 site.py
-requirements_bot.txt
+requirements_scraper.txt
 requirements_site.txt
 
 .env
