@@ -31,8 +31,11 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 GUILD_ID_INFO = discord.Object(id=int(os.getenv('GUILD_ID')))
 CREATOR_ID = int(os.getenv('CREATOR_ID'))
 
-# auto_reload roda diariamente às 6:10 UTC (3:10 em Brasília), pós web scraping no github actions
-target_time = time(hour=6, minute=10, tzinfo=timezone.utc)
+# auto_reload roda diariamente às 7:30 UTC (4:30 em Brasília) e às 19:30 UTC (16:30 em Brasília), pós web scraping no github actions
+target_time = [
+    time(hour=7, minute=30, tzinfo=timezone.utc),
+    time(hour=19, minute=30, tzinfo=timezone.utc)
+    ]
 
 # Inicializando globais
 logic = brain.Brain([], {}, {}, {}, {}, [], [])
@@ -100,7 +103,7 @@ async def update_cache(interaction: discord.Interaction):
 @tasks.loop(time=target_time)
 async def auto_reload_cache():
     '''
-    Automatic reload scheduled for 6:10 UTC daily.
+    Automatic reload scheduled for 7:30 UTC daily.
     '''
     print("Executando reload agendado pós-GitHub Actions...")
 

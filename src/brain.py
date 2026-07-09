@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 import pandas as pd
 import asyncio
@@ -58,6 +59,46 @@ async def load_id_mapas_jogados(cur, maps_dict, comps_dict):
     ]
     return mapas_jogados_cache
 
+async def load_team_table(id_time):
+    async with await get_conn() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+            SELECT id_player, id_time, id_camp, rating, acs, kd, kast, adr, kpr, apr, fkpr, fdpr, hs, cl 
+            FROM stats_players 
+            WHERE id_time = %s 
+            ORDER by id_camp DESC
+            """, (id_time, ))
+            stats_players = await cur.fetchall()
+    
+    colunas = ["Player", "Time", "Camp", "Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS", "CL"]
+
+    stats_table = pd.DataFrame(stats_players, columns=colunas)
+
+    # Treating the CL column to separate clutches won and clutches played into different columns, 
+        # converting them to numeric values and dropping the original CL column
+    cl_split = stats_table["CL"].str.split("/", expand=True)
+
+    if cl_split.shape[1] == 2:
+        stats_table["CLw"] = pd.to_numeric(cl_split[0], errors='coerce')
+        stats_table["CLp"] = pd.to_numeric(cl_split[1], errors='coerce')
+    else:
+        stats_table["CLw"] = 0
+        stats_table["CLp"] = 0
+
+    stats_table = stats_table.drop(columns=["CL"])
+
+    stats_table["KAST"] = pd.to_numeric(stats_table["KAST"], errors='coerce')
+
+    return stats_table
+
+def rodar_sync(coroutine):
+    """Transforma uma coroutine async em um resultado síncrono imediatamente"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    values = loop.run_until_complete(coroutine)
+    loop.close()
+    return values
+
 class Brain:
     def __init__(self, times, maps, agents, comps, camps, partidas, mapas_jogados):
         self.times = times
@@ -79,7 +120,7 @@ class Brain:
         self.mapas_jogados = cache[6]   # mapas_jogados
         self.players = {}
 
-    async def info_time(self, time_tag):
+    async def info_time(self, time_tag, preTable=None):
         # If the times list is empty, we return a specific error code (1)
         if not self.times:
             return 1
@@ -276,40 +317,14 @@ class Brain:
             #      EMBED 3 and 4        - Team Stats last tournament
             # If we don't have the players stats of this team in RAM yet, we load them from the database and store them in RAM for future use. If we already have them in RAM, we just use them.
             if self.players.get(time_id) is None:
-                async with await get_conn() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute("""
-                        SELECT id_player, id_time, id_camp, rating, acs, kd, kast, adr, kpr, apr, fkpr, fdpr, hs, cl 
-                        FROM stats_players 
-                        WHERE id_time = %s 
-                        ORDER by id_camp DESC
-                        """, (time["id"],))
-                        stats_players = await cur.fetchall()
-                
-                colunas = ["Player", "Time", "Camp", "Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS", "CL"]
-
-                stats_table = pd.DataFrame(stats_players, columns=colunas)
-
-                # Treating the CL column to separate clutches won and clutches played into different columns, 
-                    # converting them to numeric values and dropping the original CL column
-                cl_split = stats_table["CL"].str.split("/", expand=True)
-
-                if cl_split.shape[1] == 2:
-                    stats_table["CLw"] = pd.to_numeric(cl_split[0], errors='coerce')
-                    stats_table["CLp"] = pd.to_numeric(cl_split[1], errors='coerce')
+                if preTable is not None and preTable is not pd.DataFrame.empty:
+                    stats_table = preTable
                 else:
-                    stats_table["CLw"] = 0
-                    stats_table["CLp"] = 0
-
-                stats_table = stats_table.drop(columns=["CL"])
-
-                stats_table["KAST"] = pd.to_numeric(stats_table["KAST"], errors='coerce')
+                    stats_table = await load_team_table(time["id"])
 
                 self.players[time_id] = stats_table
             
             # if we already have the stats of this team in RAM, we just use them without querying the database again
-            # else:
-            #     stats_table = self.players[time_id]
 
             agg_rules = {
                 "Rating": "mean",
@@ -330,7 +345,7 @@ class Brain:
 
             return time, matches_descript, time_mapas, df_time
 
-    async def get(self, var):
+    async def get_value(self, var):
         if var == "times":
             return self.times
         elif var == "maps":
@@ -350,9 +365,9 @@ class Brain:
 
 async def perform_global_reload(brain : Brain):
     '''
-    ## Reloading all data from the database into RAM
+    ## Reloading all data from the database into RAM (saving into the brain instance)
 
-    :return: list of dicts (times), dict of dicts (mapas_lista), dict of dicts (agentes), dict of lists (composicoes), dict (campeonatos), list of dicts (partidas), list of dicts (mapas_jogados)
+    :return: 1 if successful, 0 if there was an error
     '''
     try:
         async with await get_conn() as conn:
@@ -371,6 +386,53 @@ async def perform_global_reload(brain : Brain):
     except Exception as e:
         print(f"Erro ao recarregar dados: {e}")
         return 0
+    
+async def site_data_reload():
+    '''
+    ## Reloading all data from the database into RAM
+
+    :return: tuple ( list of dicts (times), dict of dicts (mapas_lista), dict of dicts (agentes), dict of lists (composicoes), dict (campeonatos), list of dicts (partidas), list of dicts (mapas_jogados) )
+    '''
+    try:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                _times = await load_id_times(cur)
+                _maps = await load_id_maps(cur)
+                _agents = await load_id_agents(cur)
+                _comps = await load_id_comps(cur)
+                _camps = await load_id_camps(cur)
+                _partidas = await load_id_partidas(cur, _camps)
+                _mapas_jogados = await load_id_mapas_jogados(cur, _maps, _comps)
+        
+        return (_times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados)
+    
+    except Exception as e:
+        print(f"Erro ao buscar dados: {e}")
+        return None
+    
+def discover_reload_site():
+    """
+    Gera uma string única para o bloco de tempo atual.
+    A string muda rigorosamente às 07:30 UTC e às 19:30 UTC.
+    """
+    agora = datetime.now(timezone.utc)
+    
+    reset_1 = agora.replace(hour=7, minute=30, second=0, microsecond=0)
+    reset_2 = agora.replace(hour=19, minute=30, second=0, microsecond=0)
+    
+    # Descobre quando começou a janela atual
+    if agora < reset_1:
+        # Madrugada: a janela atual começou às 19:30 do dia anterior
+        janela_origem = reset_2 - timedelta(days=1)
+    elif agora < reset_2:
+        # Manhã/Tarde: a janela atual começou às 07:30 de hoje
+        janela_origem = reset_1
+    else:
+        # Noite: a janela atual começou às 19:30 de hoje
+        janela_origem = reset_2
+        
+    # Retorna uma string como "vlr_window_2026-07-02_07:30"
+    return f"vlr_window_{janela_origem.strftime('%Y-%m-%d_%H:%M')}"
 
 if __name__ == "__main__":
     pass

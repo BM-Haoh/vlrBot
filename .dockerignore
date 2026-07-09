@@ -8,6 +8,10 @@ auto_scrapper.py
 auto.py
 DB_handler.py
 
+site.py
+requirements_bot.txt
+requirements_site.txt
+
 .env
 *.log
 
