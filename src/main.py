@@ -124,7 +124,7 @@ async def auxilio(interaction: discord.Interaction):
     command that lists the tags of the teams for search, separated by region, and with the respective emojis.
     useful for the user to know how to write the team tag when asked for it in other commands.
     '''
-    times = await logic.get("times")
+    times = await logic.get_value("times")
 
     if not times:
         await interaction.response.send_message("Erro ao carregar os times.", ephemeral=False)
