@@ -9,11 +9,17 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# 1. Copia e instala apenas as dependências do BOT
 COPY requirements_bot.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# 2. Em vez de COPY . ., copiamos APENAS os arquivos fundamentais do bot
+COPY brain.py ./brain.py
+# Caso sua estrutura de bot use arquivos direto na src/ (como main.py, disc_buttons.py):
+COPY src/main.py ./src/main.py
+COPY src/disc_buttons.py ./src/disc_buttons.py
 
-ENV PYTHONPATH="${PYTHONPATH}:/app/src"
+# Define o caminho de execução padrão
+ENV PYTHONPATH="${PYTHONPATH}:/app"
 
 CMD ["python", "src/main.py"]

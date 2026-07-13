@@ -19,11 +19,15 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
       - name: Build and push image
+        id: docker_build  # 👈 Adicionado o ID para o passo de digest funcionar
         uses: docker/build-push-action@v7
         with:
           context: .
+          file: ./Dockerfile # Garante o caminho do Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/vlrbot-app:latest
+          # Força o build do GitHub Actions a ler o arquivo local de ignore
+          no-cache: true 
 
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

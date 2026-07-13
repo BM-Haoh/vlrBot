@@ -5,11 +5,11 @@ website/
 *.pyc
 *.ipynb
 
-auto_scrapper.py
-auto.py
-DB_handler.py
+**/auto_scraper.py
+**/auto.py
+**/DB_handler.py
 
-site.py
+**/site.py
 requirements_scraper.txt
 requirements_site.txt
 
