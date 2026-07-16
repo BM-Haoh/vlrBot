@@ -1,6 +1,5 @@
 from website.data_loader import carregar_dados
 from brain import Brain, discover_reload_site
-from dotenv import load_dotenv
 import website.pages as pages
 import streamlit as st
 import pandas as pd
@@ -12,7 +11,11 @@ if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # carregando as variáveis de ambiente
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
 
 st.set_page_config(
     page_title="Valorant Analytics Hub",
