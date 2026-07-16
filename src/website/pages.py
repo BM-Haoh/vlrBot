@@ -85,7 +85,30 @@ class Pages():
             st.markdown("<p style='text-align: center;'>Este é um site que proporciona uma visualização alternativa do VlrBot.</p>", unsafe_allow_html=True)
         
         with disc:
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw")
+            st.markdown(
+                """
+                <style>
+                /* Alveja todos os botões de link do Streamlit */
+                div[data-testid="stLinkButton"] > a {
+                    background-color: #5865F2 !important; /* Verde brilhante */
+                    color: #FFFFFF !important;            /* Texto preto para contraste */
+                    border: 2px solid #5865F2 !important;
+                    padding: 20px 40px !important;        /* Ajusta a ALTURA (20px top/bottom) e largura */
+                    font-weight: bold !important;
+                    border-radius: 8px !important;
+                }
+                
+                /* Efeito de Hover (passar o mouse) */
+                div[data-testid="stLinkButton"] > a:hover {
+                    background-color: #4752C4 !important;
+                    border-color: #4752C4 !important;
+                    color: #FFFFFF !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
 
         st.divider()
 
@@ -576,7 +599,7 @@ class Pages():
                 """,
                 unsafe_allow_html=True,
             )
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", type="secondary", use_container_width=True)
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
         
         st.divider()
 
@@ -696,7 +719,31 @@ class Pages():
             st.markdown("<p style='text-align: center;'>Este é um site que proporciona uma visualização alternativa do VlrBot.</p>", unsafe_allow_html=True)
         
         with disc:
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw")
+            st.markdown(
+                """
+                <style>
+                /* Alveja todos os botões de link do Streamlit */
+                div[data-testid="stLinkButton"] > a {
+                    background-color: #5865F2 !important; /* Verde brilhante */
+                    color: #FFFFFF !important;            /* Texto preto para contraste */
+                    border: 2px solid #5865F2 !important;
+                    padding: 20px 40px !important;        /* Ajusta a ALTURA (20px top/bottom) e largura */
+                    font-weight: bold !important;
+                    border-radius: 8px !important;
+                }
+                
+                /* Efeito de Hover (passar o mouse) */
+                div[data-testid="stLinkButton"] > a:hover {
+                    background-color: #4752C4 !important;
+                    border-color: #4752C4 !important;
+                    color: #FFFFFF !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
+            
         st.divider()
 
         col_com, espaço, col_graf = st.columns([2, 1, 8])
