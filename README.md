@@ -237,7 +237,20 @@ To replicate the database on Neon Tech:
 ---
 
 ### Project Management & Roadmap
-This project follows Agile/Scrum principles for development. You can track the Real-time progress, upcoming features, and bug fixes on my [Github Project Board](https://github.com/users/BM-Haoh/projects/2/views/1).
+
+This project follows Agile/Scrum principles for development. You can track real-time progress, upcoming features, and technical backlogs on our board, or join our community to chat and get direct support:
+
+<p align="center">
+  <a href="https://github.com/users/BM-Haoh/projects/2/views/1">
+    <img src="https://img.shields.io/badge/GitHub-Project_Board-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Project Board" />
+  </a>
+  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+  <a href="https://discord.gg/CQjRzfhvFw"> 
+    <img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord Server" />
+  </a>
+</p>
+
+---
 
 **Current Focus:**
-- Enhancing info_time command to better UX
+- Expanding capabilities by implementing and structuring new commands.
