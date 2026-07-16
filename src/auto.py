@@ -119,7 +119,7 @@ def get_placar(navegador):
     :return placar: string with scoreboard, if game started. Otherwise, empty string
     '''
     # Buscando placar:
-    placar = navegador.find_elements(By.CLASS_NAME, 'js-spoiler')
+    placar = navegador.find_elements(By.CLASS_NAME, 'sp-hide')
     try:
         placar = placar[0].text
     except: 
@@ -198,11 +198,12 @@ def get_agents_completed(navegador):
     compositions = []
     for map in maps:
         # Ignoring section "all maps"
-        if map.get_attribute('class').split(' ')[1] != '':
+        if map.get_attribute('data-game-id') == "all":
             continue
         
         # Getting all the agents
-        agentes = map.find_elements(By.CLASS_NAME, 'mod-agents')
+        agentes = map.find_elements(By.CLASS_NAME, 'mod-agent')
+        
         compositionA = []
         compositionB = []
         
@@ -327,8 +328,9 @@ class tournament_manager():
                     self.matches.reverse()
                     matches.extend(self.__game_catalog())
 
-                    self.sts_mng.get_table(self.__stats_table(url), id)
-                    self.sts_mng.save()
+                    condition = self.sts_mng.get_table(self.__stats_table(url), id)
+                    if condition:
+                        self.sts_mng.save()
                     
                     if completed:
                         cur.execute("UPDATE campeonatos SET completo = TRUE WHERE id = %s", (self.camp,))
@@ -349,7 +351,7 @@ class tournament_manager():
                 self.browser.get(item.get_attribute("href"))
                 break
 
-        if len(self.browser.find_element(By.CLASS_NAME, 'opt--all') \
+        if len(self.browser.find_element(By.CLASS_NAME, 'zx-subnav--filter') \
                 .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
             # Stage category identified, changing the option of it to "All"
             self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
@@ -483,7 +485,7 @@ class tournament_manager():
             sleep(.5)
 
             self.current_url = self.browser.current_url
-
+            
             info = self.match_info()
 
             # If teams not registered, match_info returns Null, and that game is not considered
@@ -564,6 +566,10 @@ class tournament_manager():
                 break
         
         # Creating an array with all the columns names
+        stats_ = self.browser.find_elements(By.TAG_NAME, "table")
+        if len(stats_) == 0:
+            return False, [], []
+
         stats_table = self.browser.find_element(By.TAG_NAME, "table")
         columns = stats_table.find_element(By.TAG_NAME, "thead") \
                              .find_elements(By.TAG_NAME, "th")
@@ -578,7 +584,7 @@ class tournament_manager():
             stats = [stat.text for stat in stats]
             table.append(stats)
 
-        return table, columns
+        return True, table, columns
     
 
 def creating_table(param):
@@ -589,7 +595,7 @@ def creating_table(param):
     :param param: return of vlr_stealer.stats_table()
     :return table: pd.DataFrame object
     '''
-    linhas, colunas = param
+    codn, linhas, colunas = param
     return pd.DataFrame(linhas, columns=colunas)
 
 def fixing_info(table, id):
@@ -601,7 +607,7 @@ def fixing_info(table, id):
     :return table: pd.DataFrame object with reorganized and fixed values
     '''
     # Removing useless info
-    useless_info = ["AGENTS", "RND", "KMAX", "K", "D", "A", "FK", "FD", "CL%"]
+    useless_info = ["AGENTS", "RND", "KMAX", "K", "D", "A", "CL%"]
     table = table.drop(columns=useless_info)
 
     # Inserting new columns
@@ -609,13 +615,15 @@ def fixing_info(table, id):
     table.insert(2, "CAMP", id)
 
     # Fixing columns names
-    new_columns = {"R2.0": "RATING", "K:D": "KD", "HS%": "HS"}
+    new_columns = {"R": "RATING", "K:D": "KD", "HS%": "HS", "FK:FD": "FKFD"}
     table = table.rename(columns=new_columns)
 
     # Fixing value types
-    colunas_numericas = ["RATING", "ACS", "KD", "ADR", "KPR", "APR", "FKPR", "FDPR"]
+    colunas_numericas = ["RATING", "ACS", "KD", "ADR", "KPR", "APR", "FKFD"]
     colunas_porcentagem = ["KAST", "HS"]
-    table[colunas_numericas] = table[colunas_numericas].astype(float)
+    table[colunas_numericas] = table[colunas_numericas].apply(pd.to_numeric, errors='coerce')
+    table[colunas_numericas] = table[colunas_numericas].fillna(0)
+
     for coluna in colunas_porcentagem:
         table[coluna] = table[coluna].str.replace("%", "").astype(float) / 100
 
@@ -645,7 +653,10 @@ class stats_manager():
 
     def get_table(self, param, id):
         self.id = id
-        self.table = self.__pre_processing_table(param, id)
+        if param[0]:
+            self.table = self.__pre_processing_table(param, id)
+            return True
+        return False
 
     def display(self):
         print(self.table)
@@ -680,9 +691,9 @@ class stats_manager():
                         cur.execute(""" 
                                 INSERT INTO stats_players (
                                 id_player, id_time, id_camp, rating, acs, kd, 
-                                kast, adr, kpr, apr, fkpr, fdpr, hs, cl
+                                kast, adr, kpr, apr, fkfd, hs, cl
                                 ) 
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                                 ON CONFLICT (id_player, id_time, id_camp)
                                 DO UPDATE SET 
                                     rating = EXCLUDED.rating, 
@@ -692,16 +703,15 @@ class stats_manager():
                                     adr = EXCLUDED.adr, 
                                     kpr = EXCLUDED.kpr, 
                                     apr = EXCLUDED.apr, 
-                                    fkpr = EXCLUDED.fkpr, 
-                                    fdpr = EXCLUDED.fdpr, 
+                                    fkfd = EXCLUDED.fkfd,
                                     hs = EXCLUDED.hs, 
                                     cl = EXCLUDED.cl
                                 """, 
                                 (
                                     row.PLAYER, row.TEAM, row.CAMP, row.RATING, 
                                     row.ACS, row.KD, row.KAST, row.ADR, 
-                                    row.KPR, row.APR, row.FKPR, row.FDPR, 
-                                    row.HS, row.CL  
+                                    row.KPR, row.APR, row.FKFD, row.HS, 
+                                    row.CL  
                                 )
                             )
                 except Exception as e:
