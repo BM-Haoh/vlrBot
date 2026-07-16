@@ -210,7 +210,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         
         
         # Stats do Embed 1
-        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
         idx_mais_recente = time_stats["Camp"].idxmax()
         stats_recente = time_stats.loc[idx_mais_recente]
         mapas_jogados_geral = 0
@@ -387,7 +387,7 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
 
         
         # Stats do Embed 1
-        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+        colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
 
         # Informações para criação do embed: Sessão time 1
         idx_mais_recente1 = time_stats1["Camp"].idxmax()

@@ -66,14 +66,14 @@ async def load_team_table(id_time):
     async with await get_conn() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
-            SELECT id_player, id_time, id_camp, rating, acs, kd, kast, adr, kpr, apr, fkpr, fdpr, hs, cl 
+            SELECT id_player, id_time, id_camp, rating, acs, kd, kast, adr, kpr, apr, fkfd, hs, cl 
             FROM stats_players 
             WHERE id_time = %s 
             ORDER by id_camp DESC
             """, (id_time, ))
             stats_players = await cur.fetchall()
     
-    colunas = ["Player", "Time", "Camp", "Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS", "CL"]
+    colunas = ["Player", "Time", "Camp", "Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS", "CL"]
 
     stats_table = pd.DataFrame(stats_players, columns=colunas)
 
@@ -337,8 +337,7 @@ class Brain:
                 "ADR": "mean",
                 "KPR": "mean",
                 "APR": "mean",
-                "FKPR": "mean",
-                "FDPR": "mean",
+                "FKFD": "mean",
                 "HS": "mean",
                 "CLw": "sum",
                 "CLp": "sum"

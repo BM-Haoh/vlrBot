@@ -108,7 +108,7 @@ class Pages():
                 """,
                 unsafe_allow_html=True,
             )
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", width='stretch')
 
         st.divider()
 
@@ -146,10 +146,10 @@ class Pages():
 
                 paginas_lista = []
 
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
 
                 # Stats do Embed 1
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
                 idx_mais_recente = time_stats["Camp"].idxmax()
                 stats_recente = time_stats.loc[idx_mais_recente]
                 mapas_jogados_geral = 0
@@ -599,7 +599,7 @@ class Pages():
                 """,
                 unsafe_allow_html=True,
             )
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", width='stretch')
         
         st.divider()
 
@@ -742,7 +742,7 @@ class Pages():
                 """,
                 unsafe_allow_html=True,
             )
-            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", use_container_width=True)
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", width='stretch')
             
         st.divider()
 
@@ -783,10 +783,10 @@ class Pages():
                 paginas_lista1 = []
                 paginas_lista2 = []
 
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
 
                 # Stats do Embed 1
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKPR", "FDPR", "HS"]
+                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
                 idx_mais_recente1 = time_stats1["Camp"].idxmax()
                 idx_mais_recente2 = time_stats2["Camp"].idxmax()
 
@@ -1241,7 +1241,7 @@ class Pages():
                         )
 
                         # Renderiza no Streamlit ocupando a largura total
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
 
                         
 
