@@ -1,5 +1,4 @@
 from datetime import datetime, timezone, timedelta
-from dotenv import load_dotenv
 import pandas as pd
 import asyncio
 import psycopg
@@ -7,6 +6,7 @@ import json
 import os
 
 try:
+    from dotenv import load_dotenv
     load_dotenv()
 except:
     pass
