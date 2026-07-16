@@ -6,7 +6,10 @@ import psycopg
 import json
 import os
 
-load_dotenv()
+try:
+    load_dotenv()
+except:
+    pass
 DB_URL = os.getenv("DATABASE_URL")
 
 async def get_conn():
