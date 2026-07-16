@@ -1,46 +1,47 @@
 # VlrBot
 
 ## Summary
-A Valorant bot developed by a Computer Science student as a practical application of Data Engineering and Software Architecture. This project is maintained alongside university commitments, following a weekly sprint cycle to ensure continuous improvement and code quality. It uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches. 
+A Valorant bot developed by a Computer Science student as a practical application of Data Engineering and Software Architecture. This project is maintained alongside university commitments, following a weekly sprint cycle to ensure continuous improvement and code quality. It uses web scraping with Selenium on vlr.gg to archive data from VCT matches. It analyzes this data and makes it available for visualization via Discord and a Streamlit Website. We use a PostgreSQL database (hosted on Neon Tech's free plan) to store information about teams and matches. 
 
-### v2.1.0
-Now the bot also tracks the performance table from each active tournament (linked to `campeonatos`, see [Database](README.md#database)), capturing metrics like Rating, ACS and ADR to provide deeper match analysis. 
+### v3.0.0
+**Data changes**: Our ecosystem now searches for the new data twice a day. Scraping scheduled for 2:00 UTC and 14:00 UTC, while the bot and website reload data at 7:30 UTC and 19:30 UTC. All of this to ensure that the data is up to date before the matches, allowing users to consult it before or during a match.
 
-### v2.2.0
-**Architectural Refactor:** The code previously contained in `main.py` is now split between `main.py` and `brain.py`. [File Structure](README.md#files--directory-structure) to more information.
-
-**Data Analysis:** Now we can access the information stored in `stats_players`. Integrated Pandas for advanced team statistics (based on player performance).
-
-**New UI:** `info_time` Shows the mean stats of the last tournament (mean of the ACS of each players, for example. Clutches are shown in the format `won/played`, being won and played the sum instead of the mean) in the first page. Received a third page that contais the 'historical stats'. It works the same as the stats of the last tournament, but using data from all the tournaments registered.
-
-#### v2.2.1
-**Search Normalization:** Users no longer need to include diacritics to find teams. For example, searching for "kru" will now correctly match "KRÜ".
-
-### v2.3.0
-**Navigation:** Replaced button-based pagination with a persistent `discord.ui.Select` menu for the `/info-time` command.
-
-### v2.4.0
-**Dropdown changes:** The previous dropdown structure became `Menu(tipo=0)`. A new dropdown type was introduced: `Menu(tipo=1)`. This new type is used to select a custom map pool (minimum of 3 and maximum of 5 maps) before displaying the embed book for the head-to-head feature.
-
-**Command:** `/times_vs` command. Executes a head-to-head comparison between two teams provided via slash command arguments. Upon invocation, it displays a `Menu(tipo=1)` dropdown for map selection. Once confirmed, the bot generates the main interactive interface utilizing a `Menu(tipo=0)` dropdown to navigate through: `Overview` (Performance Summary), `Map Performance`, and `Historical Stats` (Historical records) (Note: internal bot display names are in Portuguese or slightly different). This interface operates similarly to the `/info_time` command. More information under the [Features & Showcase](#features--showcase) section.
+**Visualization:** Website (Linked in the "About" section of the repository) is now available. It features the same commands from the original Discord Bot, but with interactive dashboards for better visualization.
 
 ---
 
 ## Features & Showcase
 
+The ecosystem now provides two distinct interfaces for data consumption, adapting to the user's needs.
+
+### **Accessing commands**
+- **Bot**: Using slash commands (`/[command_name]`)
+- **Website**: Using the sidebar (top-left):
+<p align="center">
+  <img src="assets/screenshots/website_sidebar.png" width="40%" />
+</p>
+
 ### **Search Assistance (`/help_times`)**
-To ensure precision, this command lists all available teams and their corresponding tags, helping users find exactly what they are looking for.
+- **Bot**: To ensure precision, this command lists all available teams and their corresponding tags, helping users find exactly what they are looking for.
 
 <p align="center">
   <img src="assets/screenshots/help_times.png" width="40%" />
 </p>
 
-### **Team Analysis (`/info_time`)**
-The core command of the bot. It provides a multi-page "book" with deep insights into VCT teams.
+- **Website**: A short explanation (in Portuguese) about how to use the website and its commands, while still dynamically showing each team's tag grouped by region.
 
-- **Page 1: Performance Summary**: Shows average stats from the latest tournament (e.g. Rating, ACS, KAST, ADR) and the team's match history
-- **Pages 2->8: Map Performance**: Displays win rates for the last 3 compositions used in the current map pool, including Attack vs. Defense efficiency.
-- **Page 9: Historical records**: Average stats but using the mean of each tournament registered.
+<p align="center">
+  <img src="assets/screenshots/website_help_1.png" alt="team tags EMEA" style="width:75%;">
+  <img src="assets/screenshots/website_help_2.png" alt="command help" style="width:75%;">
+</p>
+
+
+### **Team Analysis (`/info_time`)**
+- **Bot**: The core command of the bot. It provides a multi-page "book" interface with deep insights into VCT teams.
+
+  - **Page 1: Performance Summary**: Shows average stats from the latest tournament (e.g., Rating, ACS, KAST, ADR) and the team's match history
+  - **Pages 2-8: Map Performance**: Displays win rates for the last 3 compositions used in the current map pool, including Attack vs. Defense efficiency.
+  - **Page 9: Historical records**: Average stats but using the mean of all registered tournaments.
 
 <table border="0">
   <tr>
@@ -54,11 +55,32 @@ The core command of the bot. It provides a multi-page "book" with deep insights 
   </tr>
 </table>
 
-### **Head to Head Comparison (`/times_vs`)**
+- **Website**: Displays the same data structured into interactive dashboards (excluding the Historical Records page).
+
+<table border="0">
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_info_time1.png" alt="Team Stats Overview" style="width:100%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_info_time2.png" alt="Tem Stats Overview 2 (last matches)" style="width:100%;">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_info_time3.png" alt="General Map Performance" style="width:100%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_info_time4.png" alt="Split Map Performance" style="width:100%;">
+    </td>
+  </tr>
+</table>
+
+### **Head-to-Head Comparison (`/times_vs`)**
 An advanced comparison command that merges data from two distinct `/info_time` targets into a single, unified Embed Book for enhanced matchup visualization.
 
 - **First Page: Performance Summary (Overview)**: Side-by-side metric comparison from the latest tournament and recent match histories.
-- **Intermediary Pages: Map Performance**: Matchup-specific analytics comparing win rates and side advantages (Attack vs. Defense efficiency) on chosen maps.
+- **Intermediary Pages: Map Performance**: Matchup-specific analytics comparing win rates and side advantages (Attack vs. Defense efficiency) on selected maps.
 - **Final Page: Historical Records**: Lifetime average stats compared across all database records.
 
 <table border="0">
@@ -74,7 +96,7 @@ An advanced comparison command that merges data from two distinct `/info_time` t
   </tr>
 </table>
 
-> Note: Above we have the first response of the bot, asking the maps for comparison with `Menu(tipo=1)`
+> Note: Above is the first response of the bot, prompt-asking for the maps for comparison with `Menu(tipo=1)`
 
 <table border="0">
   <tr>
@@ -88,7 +110,35 @@ An advanced comparison command that merges data from two distinct `/info_time` t
   </tr>
 </table>
 
-> Note: Above we have each page of the `Versus Embed Book`
+> Note: Above is each page of the `Versus Embed Book`
+
+
+- **Website**: A seamless interface allowing the selection of both teams and displaying interactive side-by-side dashboards:
+
+
+<p align="center">
+  <img src="assets/screenshots/website_times_vs0.png" width="40%" />
+</p>
+<table border="0">
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_times_vs1.png" alt="Vs. Overview 1" style="width:100%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_times_vs2.png" alt="Vs. Overview 2" style="width:100%;">
+    </td>
+  </tr>
+  <tr>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_times_vs3.png" alt="Vs. General Map Performance" style="width:100%;">
+    </td>
+    <td valign="top" width="50%">
+      <img src="assets/screenshots/website_times_vs4.png" alt="Vs. Split Map Performance" style="width:100%;">
+    </td>
+  </tr>
+</table>
+
+
 
 ---
 
@@ -101,6 +151,10 @@ An advanced comparison command that merges data from two distinct `/info_time` t
 | [Auto_scraper.py](./src/auto_scraper.py) | `.py` | Integration of `auto.py` and `DB_handler.py` (Scraping then inserting into DB). |
 | [Disc_buttons](./src/disc_buttons.py) | `.py` | Interactive buttons for navigating Discord embeds. |
 | [Main](./src/main.py) | `.py` | Discord interface and bot command handling. |
+| [Site](./src/site.py) | `.py` | Main entry point for the Streamlit web application. |
+| [Website](./src/website/) | `dir/ .py` | Modular components and utility files for the website. |
+| ⤷ [Data Loader](./src/website/data_loader.py) | `.py` | Handles data retrieval and caching operations. |
+| ⤷ [Pages](./src/website/pages.py) | `.py` | Contains rendering functions for each individual page of the web application. |
 | [Brain](./src/brain.py) | `.py` | **Back-end logic:** handles database, caching, and data analysis. |
 | [Scraper](./.github/workflows/scraper.yml) | `.yml` | Automation logic for GitHub Actions. |
 | [Agents](./assets/agents) | `dir/ .png` | PNG files used to create Discord emojis for each agent. |

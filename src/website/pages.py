@@ -71,7 +71,6 @@ class Pages():
             unsafe_allow_html=True
         )
 
-
     def info_time(self):
         opções = rodar_sync(self.logic.get_value("times"))
         opções = {time["tag"]: time["id"] for time in opções}
@@ -629,13 +628,30 @@ class Pages():
                           Isso significa que o time A (da esquerda) jogou determinado mapa X vezes e que o time B (direita) jogou Y vezes.")
                 st.write("- Para não poluir muito a aba dos mapas, nesse comando as composições foram limitadas para até 3 composições. \
                           Assim como no \info_times, as composições com números menores são as mais recentes (A menos que tenha dado algum erro no banco de dados...)")
-                
 
-
-
-
-
-
+        st.markdown(
+            """
+            <style>
+            .footer {
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                background-color: rgba(14, 17, 23, 0.95); /* Cor padrão escura do Streamlit com transparência */
+                color: #888888;
+                text-align: center;
+                padding: 10px 0;
+                font-size: 13px;
+                border-top: 1px solid #262730;
+                z-index: 999;
+            }
+            </style>
+            <div class="footer">
+                <p>📊 Dados extraídos do VLR.gg • Cache limpa em janelas de 12 horas UTC • Banco de Dados: Neon Tech</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )        
 
     def vs(self):
         opções = rodar_sync(self.logic.get_value("times"))
