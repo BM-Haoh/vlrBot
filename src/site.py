@@ -1,3 +1,15 @@
+import importlib
+import sys
+
+# Garante que as mudanças no pages.py e data_loader.py sejam lidas sem precisar de reboot
+if "website.pages" in sys.modules:
+    importlib.reload(sys.modules["website.pages"])
+if "website.data_loader" in sys.modules:
+    importlib.reload(sys.modules["website.data_loader"])
+
+# Agora você pode importar normalmente
+from website import pages, data_loader
+
 from website.data_loader import carregar_dados
 from brain import Brain, discover_reload_site
 import website.pages as pages
