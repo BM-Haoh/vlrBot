@@ -16,7 +16,7 @@ class Pages():
         col_logo, col_titulo = st.columns([1, 5])
 
         with col_logo:
-            st.image("./assets/teams/mibr.png", width=100)
+            st.image("./assets/logo.png", width=120)
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -79,7 +79,7 @@ class Pages():
         col_logo, col_titulo = st.columns([1, 5])
 
         with col_logo:
-            st.image("./assets/teams/mibr.png", width=100)
+            st.image("./assets/logo.png", width=120)
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -544,7 +544,7 @@ class Pages():
         col_logo, col_titulo = st.columns([1, 5])
 
         with col_logo:
-            st.image("./assets/teams/mibr.png", width=100)
+            st.image("./assets/logo.png", width=120)
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -644,7 +644,7 @@ class Pages():
         col_logo, col_titulo = st.columns([1, 5])
 
         with col_logo:
-            st.image("./assets/teams/mibr.png", width=100)
+            st.image("./assets/logo.png", width=120)
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
