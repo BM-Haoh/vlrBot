@@ -322,6 +322,8 @@ class tournament_manager():
                 camps = cur.fetchall()
                 matches = []
                 for url, id in camps:
+                    if id != 14:
+                        continue
                     completed = self.__is_completed(url)
                     self.camp = id
                     self.matches = self.__get_games()
@@ -607,6 +609,7 @@ def fixing_info(table, id):
     :return table: pd.DataFrame object with reorganized and fixed values
     '''
     # Removing useless info
+    print("entrando")
     useless_info = ["AGENTS", "RND", "KMAX", "K", "D", "A", "CL%"]
     table = table.drop(columns=useless_info)
 
@@ -618,14 +621,20 @@ def fixing_info(table, id):
     new_columns = {"R": "RATING", "K:D": "KD", "HS%": "HS", "FK:FD": "FKFD"}
     table = table.rename(columns=new_columns)
 
+    table['RATING'] = pd.to_numeric(table['RATING'], errors='coerce')
+    table = table.dropna(subset=['RATING'])
+
+
     # Fixing value types
     colunas_numericas = ["RATING", "ACS", "KD", "ADR", "KPR", "APR", "FKFD"]
     colunas_porcentagem = ["KAST", "HS"]
     table[colunas_numericas] = table[colunas_numericas].apply(pd.to_numeric, errors='coerce')
     table[colunas_numericas] = table[colunas_numericas].fillna(0)
+    print("1 ok")
 
     for coluna in colunas_porcentagem:
         table[coluna] = table[coluna].str.replace("%", "").astype(float) / 100
+        print(f"{coluna} ok")
 
     return table
 
