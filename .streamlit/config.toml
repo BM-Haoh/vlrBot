@@ -1,0 +1,4 @@
+[theme]
+base="dark"
+backgroundColor="#0F1923"          # Escuro/Azul bem fechado no fundo
+secondaryBackgroundColor="#1F2326" # Cor para sidebar e cards

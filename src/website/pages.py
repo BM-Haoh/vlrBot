@@ -3,7 +3,6 @@ from website.data_loader import load_team_table
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-import base64
 import os
 
 class Pages():
@@ -73,12 +72,20 @@ class Pages():
 
     def info_time(self):
         opções = rodar_sync(self.logic.get_value("times"))
+        opt_aux = {time["tag"].lower(): time["img_url"] for time in opções}
         opções = {time["tag"]: time["id"] for time in opções}
 
         col_logo, col_titulo, disc = st.columns([1, 5, 1])
 
         with col_logo:
-            st.image("./assets/logo.png", width=120)
+            st.markdown(
+                '''
+                <p align="center">
+                    <img src="https://i.imgur.com/Lg026hv.png" alt="Team 1" style="width: 60%; width: 120px;">
+                </p>
+                ''', 
+                unsafe_allow_html=True
+            )
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -217,7 +224,7 @@ class Pages():
                         # Renderiza a logo do time com um leve espaçamento inferior
                         st.markdown(
                             f"""
-                            <div style='text-align: left;'>
+                            <div style='text-align: center;'>
                                 <img src='{time["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 5px;'>
                             </div>
                             """, 
@@ -279,7 +286,7 @@ class Pages():
                     st.markdown(
                         """
                         <div style='text-align: center; margin-top: 20px; margin-bottom: 10px;'>
-                            <h2 style='margin: 0; padding: 0;'>📊 Informações Gerais do Time</h2>
+                            <h2 style='margin: 0; padding: 0;'>Informações Gerais</h2>
                         </div>
                         """, 
                         unsafe_allow_html=True
@@ -305,43 +312,62 @@ class Pages():
                     st.markdown(
                         """
                         <div style='text-align: center; margin-top: 25px; margin-bottom: 20px;'>
-                            <h3 style='margin: 0; padding: 0;'>⚔️ Últimas Partidas</h3>
+                            <h3 style='margin: 0; padding: 0;'>Últimas Partidas</h3>
                         </div>
                         """, 
                         unsafe_allow_html=True
                     )
 
+                    # Iteração e renderização dos cards de partidas
                     for match in matches_decript[:-1].split("\n"):
                         if not match.strip():
                             continue
-                            
+
                         match_parts = match.split(" ")
-                        
-                        nome_campeonato = ' '.join(match_parts[1:-3])
-                        team_left_id = match_parts[-3].split(":")[1].lower() 
+
+                        nome_campeonato = " ".join(match_parts[1:-3])
+                        team_left_id = match_parts[-3].split(":")[1].lower()
                         placar = match_parts[-2]
                         team_right_id = match_parts[-1].split(":")[1].lower()
-                        
-                        caminho_esq = f"./assets/teams/{team_left_id}.png"
-                        caminho_dir = f"./assets/teams/{team_right_id}.png"
-                        
-                        if not os.path.exists(caminho_esq): caminho_esq = "./assets/teams/default.png"
-                        if not os.path.exists(caminho_dir): caminho_dir = "./assets/teams/default.png"
 
-                        with st.container(border=True):
-                            st.markdown(f"<div style='text-align: center; color: #888888; font-size: 11px; font-weight: bold; margin-bottom: 5px;'>🏆 {nome_campeonato}</div>", unsafe_allow_html=True)
-                            
-                            # 5 colunas para travar as logos e o placar bem colados no centro do card
-                            c_esp1, c_img1, c_placar, c_img2, c_esp2 = st.columns([1.5, 2.7, 2.5, 1, 1])
-                            
-                            with c_img1:
-                                st.image(caminho_esq, width=40)
-                                
-                            with c_placar:
-                                st.markdown(f"<div style='font-size: 20px; font-weight: 900; color: #ffffff; padding-top: 3px;'>{placar}</div>", unsafe_allow_html=True)
-                                
-                            with c_img2:
-                                st.image(caminho_dir, width=40)
+                        # Busca a URL da imagem no dicionário auxiliar (com fallback seguro)
+                        caminho_esq = opt_aux.get(team_left_id, "")
+                        caminho_dir = opt_aux.get(team_right_id, "")
+
+                        # Card em HTML + Flexbox (sem colunas do Streamlit)
+                        html_card_partida = f"""
+                        <div style="
+                            background-color: #1a1d24; 
+                            border: 1px solid #2e323b; 
+                            border-radius: 8px; 
+                            padding: 10px 16px; 
+                            margin-bottom: 10px; 
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            font-family: sans-serif;
+                        ">
+                            <!-- Nome do Campeonato -->
+                            <div style="text-align: center; color: #888888; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">
+                                🏆 {nome_campeonato}
+                            </div>
+                            <!-- Linha do Confronto -->
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                                <!-- Logo Time Esquerda -->
+                                <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+                                    <img src="{caminho_esq}" alt="{team_left_id}" style="width: 40px; height: 40px; object-fit: contain;">
+                                </div>
+                                <!-- Placar Centralizado -->
+                                <div style="min-width: 80px; text-align: center; font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: 1px;">
+                                    {placar}
+                                </div>
+                                <!-- Logo Time Direita -->
+                                <div style="flex: 1; display: flex; justify-content: flex-start; align-items: center;">
+                                    <img src="{caminho_dir}" alt="{team_right_id}" style="width: 40px; height: 40px; object-fit: contain;">
+                                </div>
+                            </div>
+                        </div>
+                        """
+
+                        st.markdown(html_card_partida, unsafe_allow_html=True)
 
                 elif pagina == "Maps":
                     if mapa_selecionado == "Geral":
@@ -351,7 +377,7 @@ class Pages():
                             # Renderiza a logo do time com um leve espaçamento inferior
                             st.markdown(
                                 f"""
-                                <div style='text-align: left;'>
+                                <div style='text-align: center;'>
                                     <img src='{time["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 5px;'>
                                 </div>
                                 """, 
@@ -387,7 +413,7 @@ class Pages():
                             fig.add_annotation(
                                 x=row["Mapa"],
                                 y=.05,
-                                text=f"Jogado: {row['jogado']} vezes",
+                                text=f"{row['jogado']}",
                                 showarrow=False,
                                 font=dict(color="#ffffff", size=11, family="Arial"),
                                 bgcolor="rgba(38, 39, 48, 0.95)", # Fundo escuro sutil para o modo dark do Streamlit
@@ -412,7 +438,7 @@ class Pages():
                             fig.add_annotation(
                                 x=row["Mapa"],
                                 y=.05,
-                                text=f"Jogado: {row['jogado']} vezes",
+                                text=f"{row['jogado']}",
                                 showarrow=False,
                                 font=dict(color="#ffffff", size=11, family="Arial"),
                                 bgcolor="rgba(38, 39, 48, 0.95)",
@@ -437,7 +463,7 @@ class Pages():
                             # Renderiza a logo do time com um leve espaçamento inferior
                             st.markdown(
                                 f"""
-                                <div style='text-align: left;'>
+                                <div style='text-align: center;'>
                                     <img src='{time["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 5px;'>
                                 </div>
                                 """, 
@@ -521,7 +547,7 @@ class Pages():
                                 fig.add_annotation(
                                     x=row["Comp"],
                                     y=.05,
-                                    text=f"Jogado: {row['Jogado']} vezes",
+                                    text=f"{row['Jogado']}",
                                     showarrow=False,
                                     font=dict(color="#ffffff", size=11, family="Arial"),
                                     bgcolor="rgba(38, 39, 48, 0.95)",
@@ -567,9 +593,16 @@ class Pages():
         info = rodar_sync(self.logic.get_value("times"))
 
         col_logo, col_titulo, disc = st.columns([1, 5, 1])
-
+        
         with col_logo:
-            st.image("./assets/logo.png", width=120)
+            st.markdown(
+                '''
+                <p align="center">
+                    <img src="https://i.imgur.com/Lg026hv.png" alt="Team 1" style="width: 60%; width: 120px;">
+                </p>
+                ''', 
+                unsafe_allow_html=True
+            )
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -616,37 +649,88 @@ class Pages():
             comando = st.selectbox("Selecione um dos nossos comandos", options=["Info_time", "Times_vs"], index=None, placeholder="Selecione um comando")
 
         with col_graf:
-            esp1, col0, esp2 = st.columns([1, 4, 1.7])
-            with col0:
-                st.markdown("<h2 style='text-align: center;'>Visualização</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; margin-bottom: 10px;'>Visualização</h2>", unsafe_allow_html=True)
 
-            st.write(f"Aqui é onde as informações que você busca encontrar vão aparecer! \
-                      As formas como as informações estão distribuídas são semelhantes ao do bot do discord, \
-                     para que você não tenha que reaprender. Como bônus, temos alguns gráficos visuais aqui também!")
-            if len(nome_dado) == 0:
-                pass
-            else:
-                text = ""
-                colunas = []
-                for regiao in nome_dado:
-                    text += f"{regiao}, "
-                st.write(f"Você selecionou: {text[:-2]}. (Remova as seleções para remover essa sessão)")
-                st.write("Você pode usar as tags abaixo para procurar pelos times que quer ver nos comandos. É mais fácil escrever o comecinho do que caçar entre as opções 😉")
+            st.write(
+                "Aqui é onde as informações que você busca encontrar vão aparecer! "
+                "As formas como as informações estão distribuídas são semelhantes às do bot do Discord, "
+                "para que você não tenha que reaprender. Como bônus, temos alguns gráficos visuais aqui também!"
+            )
+
+            st.divider()
+
+            if nome_dado:
+                texto_regioes = ", ".join(nome_dado)
                 
-                for i in nome_dado:
-                    colunas.append(1)
-                colunas = st.columns(colunas)
+                st.markdown(
+                    f"""
+                    <div style="background-color: #1a1d24; border: 1px solid #2e323b; border-radius: 8px; padding: 12px 16px; margin: 15px 0 20px 0;">
+                        <span style="color: #888888; font-size: 13px;">Você selecionou:</span>
+                        <strong style="color: #ff4655; font-size: 14px; margin-left: 5px;">{texto_regioes}</strong>
+                        <span style="color: #666666; font-size: 12px; display: block; margin-top: 4px;">
+                            (Remova as seleções para ocultar esta seção)
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-                for i, regiao in enumerate(nome_dado):
-                    with colunas[i]:
-                        st.markdown(f"<h2 style='text-align: center;'>{regiao}</h2>", unsafe_allow_html=True)
-                        col1, col2 = st.columns([1, 1])
-                        for time in info:
-                            if time["regiao"] == regiao:
-                                with col1:
-                                    st.markdown(f"<p style='text-align: right; font-size: 19px'>{time['tag']}</h2>", unsafe_allow_html=True)
-                                with col2:
-                                    st.image(f"{time['img_url']}", width=30)
+                st.write(
+                    "Você pode usar as tags abaixo para procurar pelos times que quer ver nos comandos. "
+                    "É mais fácil escrever o comecinho do que caçar entre as opções 😉"
+                )
+
+                for regiao in nome_dado:
+                    st.markdown(
+                        f"""
+                        <h3 style='
+                            color: #ffffff; 
+                            border-bottom: 2px solid #ff4655; 
+                            padding-bottom: 5px; 
+                            margin-top: 25px; 
+                            margin-bottom: 15px;
+                            font-size: 20px;
+                        '>
+                            📍 {regiao}
+                        </h3>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    html_times = ""
+                    for time in info:
+                        if time.get("regiao") == regiao:
+                            tag = time.get('tag', '')
+                            img_url = time.get('img_url', '')
+
+                            html_times += f"""
+                            <div style="
+                                display: inline-flex; 
+                                align-items: center; 
+                                gap: 8px; 
+                                background-color: #262730; 
+                                border: 1px solid #363945; 
+                                border-radius: 20px; 
+                                padding: 6px 14px; 
+                                margin: 4px;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+                            ">
+                                <img src="{img_url}" alt="{tag}" style="width: 22px; height: 22px; object-fit: contain;">
+                                <span style="color: #ffffff; font-weight: bold; font-size: 14px; font-family: sans-serif;">{tag}</span>
+                            </div>
+                            """
+
+                    if html_times:
+                        st.markdown(
+                            f"""
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">
+                                {html_times}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                    else:
+                        st.markdown("<p style='color: gray; font-style: italic;'>Nenhum time encontrado nesta região.</p>", unsafe_allow_html=True)
 
             if comando is None:
                 pass
@@ -707,12 +791,20 @@ class Pages():
 
     def vs(self):
         opções = rodar_sync(self.logic.get_value("times"))
+        opt_aux = {time["tag"].lower(): time["img_url"] for time in opções}
         opções = {time["tag"]: time["id"] for time in opções}
 
         col_logo, col_titulo, disc = st.columns([1, 5, 1])
 
         with col_logo:
-            st.image("./assets/logo.png", width=120)
+            st.markdown(
+                '''
+                <p align="center">
+                    <img src="https://i.imgur.com/Lg026hv.png" alt="Team 1" style="width: 60%; width: 120px;">
+                </p>
+                ''', 
+                unsafe_allow_html=True
+            )
 
         with col_titulo:
             st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
@@ -891,41 +983,29 @@ class Pages():
                     paginas_lista2.append(Mapa2)
 
                 if pagina == "Overview":
-                    col11, col_label, col12 = st.columns([2, 1, 2])
-                    with col11:
-                        st.markdown(
-                            f"""
-                            <div style='text-align: right; padding-right: 20px;'>
-                                <img src='{time1["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                <h2 style='margin: 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
+                    st.markdown(
+                        f"""
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <!-- Time 1 -->
+                            <div style="flex: 4; text-align: center;">
+                                <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
+                                <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
                                 <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
                             </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
-
-                    with col_label:
-                        st.markdown(
-                            """
-                            <div style='text-align: center; padding-top: 45px;'>
-                                <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 900;'>VS</h1>
+                            <!-- VS -->
+                            <div style="flex: 2; text-align: center;">
+                                <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 800;'>VS</h1>
                             </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
-
-                    with col12:
-                        st.markdown(
-                            f"""
-                            <div style='text-align: left; padding-left: 20px;'>
-                                <img src='{time2["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                <h2 style='margin: 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
+                            <!-- Time 2 -->
+                            <div style="flex: 4; text-align: center;">
+                                <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
+                                <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
                                 <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
                             </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
-
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
 
                     # Infos gerais de win rate
                     Atk1_ = Atk_geral1[0]/Atk_geral1[1] if Atk_geral1[1] > 0 else 0
@@ -937,7 +1017,7 @@ class Pages():
                     Map2_ = Map_geral2[0]/Map_geral2[1] if Map_geral2[1] > 0 else 0
                     
 
-                    st.markdown("<h3 style='text-align: center;'>⚔️ Comparação Direta de Equipes ⚔️</h3>", unsafe_allow_html=True)
+                    st.markdown("<h3 style='text-align: center;'>Statísticas</h3>", unsafe_allow_html=True)
                     st.write("")
 
                     for coluna in colunas:
@@ -958,26 +1038,42 @@ class Pages():
                             pct_bar_t1 = float(val_t1 / max_valor)
                             pct_bar_t2 = float(val_t2 / max_valor)
 
-                        c_val1, c_bar1, c_nome, c_bar2, c_val2 = st.columns([1, 2, 1.5, 2, 1])
-
+                        # Mantém a sua lógica de destaque para o maior valor
                         estilo_t1 = "font-weight: bold; color: #FFFFFF;" if val_t1 >= val_t2 else "font-weight: normal; color: #888888;"
                         estilo_t2 = "font-weight: bold; color: #FFFFFF;" if val_t2 >= val_t1 else "font-weight: normal; color: #888888;"
 
-                        with c_val1:
-                            st.markdown(f"<div style='text-align: right; {estilo_t1}'>{texto_t1}</div>", unsafe_allow_html=True)
-                            
-                        with c_bar1:
-                            st.progress(pct_bar_t1)
-                            
-                        with c_nome:
-                            st.markdown(f"<div style='text-align: center; color: gray; font-weight: bold;'>{coluna}</div>", unsafe_allow_html=True)
-                            
-                        with c_bar2:
-                            st.progress(pct_bar_t2)
-                            
-                        with c_val2:
-                            st.markdown(f"<div style='text-align: left; {estilo_t2}'>{texto_t2}</div>", unsafe_allow_html=True)
+                        # Converte as porcentagens em inteiro (de 0 a 100) para o CSS width
+                        p1 = int(pct_bar_t1 * 100) if isinstance(pct_bar_t1, float) and pct_bar_t1 <= 1.0 else int(pct_bar_t1)
+                        p2 = int(pct_bar_t2 * 100) if isinstance(pct_bar_t2, float) and pct_bar_t2 <= 1.0 else int(pct_bar_t2)
+
+                        html_barras = f"""
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-family: sans-serif; font-size: 14px;">
+                            <!-- Valor Time 1 -->
+                            <div style="width: 12%; text-align: right; {estilo_t1} white-space: nowrap;">
+                                {texto_t1}
+                            </div>
+                            <!-- Barra Time 1 (Cresce da direita para a esquerda) -->
+                            <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden; display: flex; justify-content: flex-end;">
+                                <div style="background-color: #ef4444; width: {p1}%; height: 100%; border-radius: 5px;"></div>
+                            </div>
+                            <!-- Nome da Métrica (Centro) -->
+                            <div style="width: 26%; text-align: center; color: #888888; font-weight: bold; font-size: 13px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {coluna}
+                            </div>
+                            <!-- Barra Time 2 (Cresce da esquerda para a direita) -->
+                            <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden;">
+                                <div style="background-color: #3b82f6; width: {p2}%; height: 100%; border-radius: 5px;"></div>
+                            </div>
+                            <!-- Valor Time 2 -->
+                            <div style="width: 12%; text-align: left; {estilo_t2} white-space: nowrap;">
+                                {texto_t2}
+                            </div>
+                        </div>
+                        """
+
+                        st.markdown(html_barras, unsafe_allow_html=True)
                     
+                    # --- Lógica de Clutches ---
                     cl_w1, cl_p1 = stats_recente1['CLw'], stats_recente1['CLp']
                     cl_w2, cl_p2 = stats_recente2['CLw'], stats_recente2['CLp']
 
@@ -985,57 +1081,68 @@ class Pages():
                     tx_cl2 = (cl_w2 / cl_p2) if cl_p2 > 0 else 0.0
                     max_tx = max(tx_cl1, tx_cl2, 0.001)
 
-                    c_val1, c_bar1, c_nome, c_bar2, c_val2 = st.columns([1, 2, 1.5, 2, 1])
-                    with c_val1:
-                        st.markdown(f"<div style='text-align: right;'>{cl_w1}/{cl_p1}</div>", unsafe_allow_html=True)
-                    with c_bar1:
-                        st.progress(tx_cl1 / max_tx)
-                    with c_nome:
-                        st.markdown("<div style='text-align: center; color: gray; font-weight: bold;'>Clutches (W/P)</div>", unsafe_allow_html=True)
-                    with c_bar2:
-                        st.progress(tx_cl2 / max_tx)
-                    with c_val2:
-                        st.markdown(f"<div style='text-align: left;'>{cl_w2}/{cl_p2}</div>", unsafe_allow_html=True)
+                    # --- Cálculo de Destaque e Larguras das Barras ---
+                    estilo_cl1 = "font-weight: bold; color: #FFFFFF;" if tx_cl1 >= tx_cl2 else "font-weight: normal; color: #888888;"
+                    estilo_cl2 = "font-weight: bold; color: #FFFFFF;" if tx_cl2 >= tx_cl1 else "font-weight: normal; color: #888888;"
+
+                    # Converte a proporção em porcentagem de 0 a 100% para o CSS
+                    p1_cl = int((tx_cl1 / max_tx) * 100)
+                    p2_cl = int((tx_cl2 / max_tx) * 100)
+
+                    # --- Layout HTML Flexbox (Sem tabelas e sem st.columns) ---
+                    html_clutches = f"""
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-family: sans-serif; font-size: 14px;">
+                        <!-- Valor Time 1 (Clutches Vencidos / Jogados) -->
+                        <div style="width: 12%; text-align: right; {estilo_cl1} white-space: nowrap;">
+                            {cl_w1}/{cl_p1}
+                        </div>
+                        <!-- Barra Time 1 (Cresce da direita para a esquerda) -->
+                        <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden; display: flex; justify-content: flex-end;">
+                            <div style="background-color: #ef4444; width: {p1_cl}%; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        <!-- Nome da Métrica -->
+                        <div style="width: 26%; text-align: center; color: #888888; font-weight: bold; font-size: 13px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            CL (W/P)
+                        </div>
+                        <!-- Barra Time 2 (Cresce da esquerda para a direita) -->
+                        <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden;">
+                            <div style="background-color: #3b82f6; width: {p2_cl}%; height: 100%; border-radius: 5px;"></div>
+                        </div>
+                        <!-- Valor Time 2 (Clutches Vencidos / Jogados) -->
+                        <div style="width: 12%; text-align: left; {estilo_cl2} white-space: nowrap;">
+                            {cl_w2}/{cl_p2}
+                        </div>
+                    </div>
+                    """
+
+                    st.markdown(html_clutches, unsafe_allow_html=True)
 
 
-                    st.markdown("<h3 style='text-align: center; margin-top: 20px;'>📊 Informações Gerais das Equipes</h3>", unsafe_allow_html=True)
+                    st.markdown("<h3 style='text-align: center; margin-top: 20px;'>Informações Gerais</h3>", unsafe_allow_html=True)
                     st.markdown("<p style='text-align: center; color: gray; margin-bottom: 25px;'>Volume total de partidas computadas na temporada</p>", unsafe_allow_html=True)
 
-                    col11, col_label, col12 = st.columns([2, 1, 2])
+                    html_mapas_jogados = f"""
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 15px 0; font-family: sans-serif;">
+                        <!-- Time 1 -->
+                        <div style="flex: 2; text-align: right; padding-right: 15px;">
+                            <img src='{time1["img_url"]}' width='70' style='object-fit: contain; margin-bottom: 8px; opacity: 0.8;'>
+                            <div style='color: #888888; font-size: 13px; font-weight: bold; text-transform: uppercase;'>Mapas Jogados</div>
+                            <h2 style='margin: 0; padding: 0; color: #ef4444; font-size: 36px; line-height: 1.1;'>{mapas_jogados_geral1}</h2>
+                        </div>
+                        <!-- VS Central -->
+                        <div style="flex: 1; text-align: center;">
+                            <h2 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 900; opacity: 0.5; font-size: 28px;'>VS</h2>
+                        </div>
+                        <!-- Time 2 -->
+                        <div style="flex: 2; text-align: left; padding-left: 15px;">
+                            <img src='{time2["img_url"]}' width='70' style='object-fit: contain; margin-bottom: 8px; opacity: 0.8;'>
+                            <div style='color: #888888; font-size: 13px; font-weight: bold; text-transform: uppercase;'>Mapas Jogados</div>
+                            <h2 style='margin: 0; padding: 0; color: #3b82f6; font-size: 36px; line-height: 1.1;'>{mapas_jogados_geral2}</h2>
+                        </div>
+                    </div>
+                    """
 
-                    with col11:
-                        st.markdown(
-                            f"""
-                            <div style='text-align: right; padding-right: 20px;'>
-                                <img src='{time1["img_url"]}' width='70' style='object-fit: contain; margin-bottom: 10px; opacity: 0.8;'>
-                                <div style='color: gray; font-size: 14px; font-weight: bold; text-transform: uppercase;'>Mapas Jogados</div>
-                                <h2 style='margin: 0; padding: 0; color: #ef4444; font-size: 36px;'>{mapas_jogados_geral1}</h2>
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
-
-                    with col_label:
-                        st.markdown(
-                            """
-                            <div style='text-align: center; padding-top: 35px;'>
-                                <h2 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 900; opacity: 0.5;'>VS</h2>
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
-
-                    with col12:
-                        st.markdown(
-                            f"""
-                            <div style='text-align: left; padding-left: 20px;'>
-                                <img src='{time2["img_url"]}' width='70' style='object-fit: contain; margin-bottom: 10px; opacity: 0.8;'>
-                                <div style='color: gray; font-size: 14px; font-weight: bold; text-transform: uppercase;'>Mapas Jogados</div>
-                                <h2 style='margin: 0; padding: 0; color: #3b82f6; font-size: 36px;'>{mapas_jogados_geral2}</h2>
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
-                        )
+                    st.markdown(html_mapas_jogados, unsafe_allow_html=True)
 
                     dados_confronto = [
                         {"Métrica": "Ataque", "Time": time1["tag"], "Winrate": Atk1_},
@@ -1064,92 +1171,136 @@ class Pages():
                     fig.update_yaxes(tickformat=".0%", range=[0, 1])
                     st.plotly_chart(fig, width='stretch')
 
-                    def renderizar_cards_partidas(matches_decript):
+                    def renderizar_cards_partidas(matches_decript, opt_aux):
                         if not matches_decript:
-                            st.markdown("<p style='color: gray; font-style: italic;'>Nenhuma partida recente registrada.</p>", unsafe_allow_html=True)
+                            st.markdown(
+                                "<p style='color: gray; font-style: italic;'>Nenhuma partida recente registrada.</p>",
+                                unsafe_allow_html=True,
+                            )
                             return
 
                         for match_str in matches_decript[:-1].split("\n"):
                             if not match_str.strip():
                                 continue
-                                
+
                             match_parts = match_str.split(" ")
-                            
-                            nome_campeonato = ' '.join(match_parts[1:-3])
+
+                            nome_campeonato = " ".join(match_parts[1:-3])
                             team_left_id = match_parts[-3].split(":")[1].lower()
                             placar = match_parts[-2]
                             team_right_id = match_parts[-1].split(":")[1].lower()
-                            
-                            caminho_esq = f"./assets/teams/{team_left_id}.png"
-                            caminho_dir = f"./assets/teams/{team_right_id}.png"
-                            
-                            if not os.path.exists(caminho_esq): caminho_esq = "./assets/teams/default.png"
-                            if not os.path.exists(caminho_dir): caminho_dir = "./assets/teams/default.png"
 
+                            # Busca a URL da imagem no dicionário auxiliar (com fallback para link genérico se o ID não existir)
+                            caminho_esq = opt_aux.get(team_left_id, "")
+                            caminho_dir = opt_aux.get(team_right_id, "")
 
-                            with st.container(border=True):
-                                st.markdown(f"<div style='text-align: center; color: #888888; font-size: 11px; font-weight: bold; margin-bottom: 5px;'>🏆 {nome_campeonato}</div>", unsafe_allow_html=True)
-                                
-                                c_esp1, c_img1, c_placar, c_img2, c_esp2 = st.columns([1.5, 1, 2, 1, 1.5])
-                                
-                                with c_img1:
-                                    st.image(caminho_esq, width=35)
-                                    
-                                with c_placar:
-                                    st.markdown(f"<div style='text-align: center; font-size: 20px; font-weight: 900; color: #ffffff; padding-top: 3px;'>{placar}</div>", unsafe_allow_html=True)
-                                    
-                                with c_img2:
-                                    st.image(caminho_dir, width=35)
+                            html_card_partida = f"""
+                            <div style="
+                                background-color: #1a1d24; 
+                                border: 1px solid #2e323b; 
+                                border-radius: 8px; 
+                                padding: 10px 16px; 
+                                margin-bottom: 10px; 
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                                font-family: sans-serif;
+                            ">
+                                <!-- Nome do Campeonato -->
+                                <div style="text-align: center; color: #888888; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">
+                                    🏆 {nome_campeonato}
+                                </div>
+                                <!-- Linha do Confronto (Time Esquerda | Placar | Time Direita) -->
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                                    <!-- Logo Time Esquerda -->
+                                    <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center;">
+                                        <img src="{caminho_esq}" alt="{team_left_id}" style="width: 35px; height: 35px; object-fit: contain;">
+                                    </div>
+                                    <!-- Placar Central -->
+                                    <div style="min-width: 80px; text-align: center; font-size: 20px; font-weight: 900; color: #ffffff; letter-spacing: 1px;">
+                                        {placar}
+                                    </div>
+                                    <!-- Logo Time Direita -->
+                                    <div style="flex: 1; display: flex; justify-content: flex-start; align-items: center;">
+                                        <img src="{caminho_dir}" alt="{team_right_id}" style="width: 35px; height: 35px; object-fit: contain;">
+                                    </div>
+                                </div>
+                            </div>
+                            """
 
-                    st.markdown("<h3 style='text-align: center; margin-top: 25px;'>⚔️ Últimas Partidas</h3>", unsafe_allow_html=True)
+                            st.markdown(html_card_partida, unsafe_allow_html=True)
+
+                    st.markdown("<h3 style='text-align: center; margin-top: 25px;'>Últimas Partidas</h3>", unsafe_allow_html=True)
                     st.write("")
 
                     col_t1, col_t2 = st.columns([1, 1])
 
                     with col_t1:
                         st.markdown(f"<h4 style='text-align: center; color: #ef4444; margin-bottom: 15px;'>{time1['tag']}</h4>", unsafe_allow_html=True)
-                        renderizar_cards_partidas(matches_decript1)
+                        renderizar_cards_partidas(matches_decript1, opt_aux)
 
                     with col_t2:
                         st.markdown(f"<h4 style='text-align: center; color: #3b82f6; margin-bottom: 15px;'>{time2['tag']}</h4>", unsafe_allow_html=True)
-                        renderizar_cards_partidas(matches_decript2)
+                        renderizar_cards_partidas(matches_decript2, opt_aux)
 
                 elif pagina == "Maps":
                     if mapa_selecionado == "Geral":
-                        col11, col_label, col12 = st.columns([2, 1, 2])
-                        with col11:
-                            st.markdown(
-                                f"""
-                                <div style='text-align: right; padding-right: 20px;'>
-                                    <img src='{time1["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                    <h2 style='margin: 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
+                        st.markdown(
+                            f"""
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <!-- Time 1 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
-
-                        with col_label:
-                            st.markdown(
-                                """
-                                <div style='text-align: center; padding-top: 45px;'>
-                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 900;'>VS</h1>
+                                <!-- VS -->
+                                <div style="flex: 2; text-align: center;">
+                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 800;'>VS</h1>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
-
-                        with col12:
-                            st.markdown(
-                                f"""
-                                <div style='text-align: left; padding-left: 20px;'>
-                                    <img src='{time2["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                    <h2 style='margin: 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
+                                <!-- Time 2 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+
+                        st.markdown(
+                            """
+                            <style>
+                                /* Esconde a mensagem por padrão em telas grandes (PC) */
+                                .aviso-mobile {
+                                    display: none;
+                                }
+
+                                /* Mostra a mensagem APENAS em telas com largura de até 768px (Celulares) */
+                                @media screen and (max-width: 768px) {
+                                    .aviso-mobile {
+                                        display: block;
+                                        background-color: #2b1d1d;
+                                        border-left: 5px solid #ff4655;
+                                        border-radius: 6px;
+                                        padding: 12px 16px;
+                                        margin-bottom: 20px;
+                                        font-family: sans-serif;
+                                    }
+                                }
+                            </style>
+
+                            <div class="aviso-mobile">
+                                <strong style="color: #ff4655; font-size: 14px; text-transform: uppercase;">
+                                    📱 Modo Celular Detectado
+                                </strong>
+                                <p style="color: #cccccc; font-size: 13px; margin: 4px 0 0 0; line-height: 1.4;">
+                                    Os gráficos do mapa <strong>"Geral"</strong> ficam muito comprimidos no celular. 
+                                    Para uma leitura ideal, selecione mapas específicos no filtro.
+                                </p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
 
 
                         map_confronto = []
@@ -1246,42 +1397,37 @@ class Pages():
                         
 
                     else:
-                        col11, col_label, col12 = st.columns([2, 1, 2])
-                        with col11:
-                            st.markdown(
-                                f"""
-                                <div style='text-align: right; padding-right: 20px;'>
-                                    <img src='{time1["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                    <h2 style='margin: 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
+                        st.markdown(
+                            f"""
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <!-- Time 1 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
-
-                        with col_label:
-                            st.markdown(
-                                """
-                                <div style='text-align: center; padding-top: 45px;'>
-                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 900;'>VS</h1>
+                                <!-- VS -->
+                                <div style="flex: 2; text-align: center;">
+                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 800;'>VS</h1>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
-
-                        with col12:
-                            st.markdown(
-                                f"""
-                                <div style='text-align: left; padding-left: 20px;'>
-                                    <img src='{time2["img_url"]}' width='100' style='object-fit: contain; margin-bottom: 10px;'>
-                                    <h2 style='margin: 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
+                                <!-- Time 2 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
                                 </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
 
                         st.divider()
+
+                        map_confronto = []
+                        AtkDef_confronto = []
+
+                        tag_a = time1["tag"]
+                        tag_b = time2["tag"]
 
                         for pag_t1, pag_t2 in zip(paginas_lista1, paginas_lista2):
                             if pag_t1["nome"] == mapa_selecionado:
@@ -1307,7 +1453,7 @@ class Pages():
                                     continue
 
                                 with col_id:
-                                    st.write(f"##### Composição {i+1}:")
+                                    st.write(f"##### Composição {i+1} ({time1['tag']}):")
                                 
                                 colunas_agentes = [agt1, agt2, agt3, agt4, agt5]
                                 indices_agentes = [1, 3, 5, 7, 9]
@@ -1349,7 +1495,7 @@ class Pages():
                                     continue
 
                                 with col_id:
-                                    st.write(f"##### Composição {i+1}:")
+                                    st.write(f"##### Composição {i+1} ({time2['tag']}):")
                                 
                                 colunas_agentes = [agt1, agt2, agt3, agt4, agt5]
                                 indices_agentes = [1, 3, 5, 7, 9]
@@ -1387,16 +1533,20 @@ class Pages():
                                     comp_df,
                                     x="Comp",
                                     y=['W% Ataque', 'W% Defesa', 'W% Geral'],
-                                    title="Winrates das Composições (%)",
+                                    title=f"Winrates das Composições (%) ({time1['tag']})",
                                     barmode="group",
                                     color_discrete_map={"W% Ataque": "#ef4444", "W% Defesa": "#3b82f6", "W% Geral": "#10b981"},
                                     labels={"value": "Porcentagem (%)", "variable": "Métrica", "Comp": "Composições"}
                                 )
                                 for idx, row in comp_df.iterrows():
+                                    if int(row['Jogado']) == 1:
+                                        jogo = "jogo"
+                                    else:
+                                        jogo = "jogos"
                                     fig.add_annotation(
                                         x=row["Comp"],
                                         y=.05,
-                                        text=f"Jogado: {row['Jogado']} vezes",
+                                        text=f"{row['Jogado']} {jogo}",
                                         showarrow=False,
                                         font=dict(color="#ffffff", size=11, family="Arial"),
                                         bgcolor="rgba(38, 39, 48, 0.95)",
@@ -1417,16 +1567,20 @@ class Pages():
                                     comp_df,
                                     x="Comp",
                                     y=['W% Ataque', 'W% Defesa', 'W% Geral'],
-                                    title="Winrates das Composições (%)",
+                                    title=f"Winrates das Composições (%) ({time2['tag']})",
                                     barmode="group",
                                     color_discrete_map={"W% Ataque": "#ef4444", "W% Defesa": "#3b82f6", "W% Geral": "#10b981"},
                                     labels={"value": "Porcentagem (%)", "variable": "Métrica", "Comp": "Composições"}
                                 )
                                 for idx, row in comp_df.iterrows():
+                                    if int(row['Jogado']) == 1:
+                                        jogo = "jogo"
+                                    else:
+                                        jogo = "jogos"
                                     fig.add_annotation(
                                         x=row["Comp"],
                                         y=.05,
-                                        text=f"Jogado: {row['Jogado']} vezes",
+                                        text=f"{row['Jogado']} {jogo}",
                                         showarrow=False,
                                         font=dict(color="#ffffff", size=11, family="Arial"),
                                         bgcolor="rgba(38, 39, 48, 0.95)",
@@ -1439,6 +1593,93 @@ class Pages():
                                 fig.update_yaxes(tickformat=".0%", range=[0, 1])
             
                                 st.plotly_chart(fig, width='stretch')
+
+                        col_map, col_round = st.columns([1, 1])
+
+                        map_confronto.append({"Time": tag_a, "Mapa": pag_t1["nome"], "Winrate": pag_t1["description"]["map"], "jogado": pag_t1["description"]["jogado"]})
+                        map_confronto.append({"Time": tag_b, "Mapa": pag_t2["nome"], "Winrate": pag_t2["description"]["map"], "jogado": pag_t2["description"]["jogado"]})
+                        
+                        AtkDef_confronto.append({"Time": tag_a, "Mapa": pag_t1["nome"], "W% Ataque": pag_t1["description"]["atk"], "W% Defesa": pag_t1["description"]["def"], "jogado": pag_t1["description"]["jogado"]})
+                        AtkDef_confronto.append({"Time": tag_b, "Mapa": pag_t2["nome"], "W% Ataque": pag_t2["description"]["atk"], "W% Defesa": pag_t2["description"]["def"], "jogado": pag_t2["description"]["jogado"]})
+
+                        map_df = pd.DataFrame(map_confronto)
+                        AtkDef_df = pd.DataFrame(AtkDef_confronto)
+
+                        mapas_jogos = {}
+                        for item in AtkDef_confronto:
+                            if item["Mapa"] not in mapas_jogos:
+                                mapas_jogos[item["Mapa"]] = {}
+                            mapas_jogos[item["Mapa"]][item["Time"]] = item["jogado"]
+
+                        def formatar_eixo_x(row):
+                            mapa = row["Mapa"]
+                            jogos_a = mapas_jogos.get(mapa, {}).get(tag_a, 0)
+                            jogos_b = mapas_jogos.get(mapa, {}).get(tag_b, 0)
+                            return f"{mapa}<br><span style='font-size:13px; color:#888888;'>{tag_a}:{jogos_a} | {tag_b}:{jogos_b}</span>"
+                        
+                        map_df["Mapa_Detalhado"] = map_df.apply(formatar_eixo_x, axis=1)
+
+                        fig = px.bar(
+                            map_df,
+                            x="Mapa_Detalhado",        
+                            y="Winrate",        
+                            color="Time",      
+                            barmode="group",    
+                            title="Comparação de Aproveitamento no Mapa (%)",
+                            labels={"Winrate": "Winrate (%)", "Mapa_Detalhado": "Mapa"},
+                            color_discrete_map={tag_a: "#ef4444", tag_b: "#3b82f6"} 
+                        )
+                        
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+                        with col_map:
+                            st.plotly_chart(fig, width='stretch')
+
+                        # AtkDef
+
+                        AtkDef_df["Mapa_Com_Jogos"] = AtkDef_df.apply(
+                            lambda row: f"{row['Mapa']}<br><span style='font-size:10px; color:gray;'>{tag_a}:{row['jogado']} | {tag_b}:{row['jogado']}</span>", 
+                            axis=1
+                        )
+
+                        AtkDef_df["Mapa_Detalhado"] = AtkDef_df.apply(formatar_eixo_x, axis=1)
+
+                        AtkDef_df2 = pd.melt(
+                            AtkDef_df, 
+                            id_vars=["Time", "Mapa_Detalhado"], 
+                            value_vars=["W% Ataque", "W% Defesa"],
+                            var_name="Lado",
+                            value_name="Winrate"
+                        )
+                        AtkDef_df2["Lado do Time"] = AtkDef_df2["Lado"] + " (" + AtkDef_df2["Time"] + ")"
+
+                        cores_customizadas = {
+                            f"W% Ataque ({tag_a})": "#b91c1c",  # Vermelho Escuro
+                            f"W% Defesa ({tag_a})": "#fca5a5",  # Azul Escuro
+                            f"W% Ataque ({tag_b})": "#1d4ed8",  # Vermelho Claro/Pastel
+                            f"W% Defesa ({tag_b})": "#93c5fd"   # Azul Claro/Pastel
+                        }
+
+                        fig = px.bar(
+                            AtkDef_df2,
+                            x="Mapa_Detalhado",
+                            y="Winrate",
+                            color="Lado do Time",
+                            barmode="group",
+                            title="Confronto Direto (ATK vs DEF) do Mapa",
+                            color_discrete_map=cores_customizadas,
+                            labels={"Mapa_Detalhado": "Mapa", "Winrate": "Winrate (%)"}
+                        )
+
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+
+                        fig.update_traces(
+                            hovertemplate="<b>%{x}</b><br>Winrate: %{y:.2f}%<extra></extra>"
+                        )
+
+                        with col_round:
+                            st.plotly_chart(fig, width='stretch')
 
             else:
                 st.write("Selecione um dado para exibir.")
