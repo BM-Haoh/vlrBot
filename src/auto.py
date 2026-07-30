@@ -126,9 +126,6 @@ def get_placar(navegador):
     except: 
         placar = ""
 
-    print(navegador.current_url)
-    print(placar)
-
     return placar
     
 def get_pickban(navegador):
