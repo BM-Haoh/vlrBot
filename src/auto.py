@@ -119,11 +119,15 @@ def get_placar(navegador):
     :return placar: string with scoreboard, if game started. Otherwise, empty string
     '''
     # Buscando placar:
-    placar = navegador.find_elements(By.CLASS_NAME, 'sp-hide')
+    placar = navegador.find_element(By.CLASS_NAME, 'match-header-vs-score') \
+                      .find_elements(By.CLASS_NAME, 'sp-hide')
     try:
         placar = placar[0].text
     except: 
         placar = ""
+
+    print(navegador.current_url)
+    print(placar)
 
     return placar
     
