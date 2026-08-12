@@ -14,121 +14,143 @@ class DB_handler:
         self.map_dict, self.agent_dict, self.teams_dict = self.__load_info()
 
     def process_matches(self):
-        #try:
-            with self.__get_conn() as conn:
-                with conn.cursor() as cur:
-                    for p in self.matches:
-                        # Mapeamento: timeA/B é uma lista [ID_A, ID_B]
-                        id_partida = p['id']
-                        id_time_a = self.teams_dict.get(p['times'][0])
-                        id_time_b = self.teams_dict.get(p['times'][1])
+        with self.__get_conn() as conn:
+            with conn.cursor() as cur:
+                for p in self.matches:
+                    # Mapeamento: timeA/B é uma lista [ID_A, ID_B]
+                    id_partida = p['id']
+                    id_time_a = self.teams_dict.get(p['times'][0])
+                    id_time_b = self.teams_dict.get(p['times'][1])
 
-                        # Convertendo o dicionário de pickban para string JSON
-                        pb = {}
-                        pool = []
-                        map_id = 0
+                    # Convertendo o dicionário de pickban para string JSON
+                    pb = {}
+                    pool = []
+                    map_id = 0
 
-                        map_added = False
-                        # Processando bans
-                        if  p["pickban"].get("Abans"):
-                            pool.extend(p["pickban"]["Abans"])
-                            for m in p["pickban"]["Abans"]:
-                                if m.lower().strip() not in self.map_dict:
-                                    map_id = self.__create_map(m.capitalize(), cur)
-                                    self.map_dict[m.lower().strip()] = [map_id, True]
-                                    map_added = True
-                            pb["Abans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Abans"]]
+                    pb["First"] = p['pickban']["first"]
 
-                        if  p["pickban"].get("Bbans"):
-                            pool.extend(p["pickban"]["Bbans"])
-                            for m in p["pickban"]["Bbans"]:
-                                if m.lower().strip() not in self.map_dict:
-                                    map_id = self.__create_map(m.capitalize(), cur)
-                                    self.map_dict[m.lower().strip()] = [map_id, True]
-                                    map_added = True
-                            pb["Bbans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bbans"]]
-
-                        # Processando picks
-                        pool.extend(p["pickban"]["Apicks"])
-                        for m in p["pickban"]["Apicks"]:
+                    map_added = False
+                    # Processando bans
+                    if  p["pickban"].get("Abans"):
+                        pool.extend(p["pickban"]["Abans"])
+                        for m in p["pickban"]["Abans"]:
                             if m.lower().strip() not in self.map_dict:
                                 map_id = self.__create_map(m.capitalize(), cur)
                                 self.map_dict[m.lower().strip()] = [map_id, True]
                                 map_added = True
-                        pb["Apicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Apicks"]]
+                        pb["Abans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Abans"]]
 
-                        pool.extend(p["pickban"]["Bpicks"])
-                        for m in p["pickban"]["Bpicks"]:
+                    if  p["pickban"].get("Bbans"):
+                        pool.extend(p["pickban"]["Bbans"])
+                        for m in p["pickban"]["Bbans"]:
                             if m.lower().strip() not in self.map_dict:
                                 map_id = self.__create_map(m.capitalize(), cur)
                                 self.map_dict[m.lower().strip()] = [map_id, True]
                                 map_added = True
-                        pb["Bpicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bpicks"]]
+                        pb["Bbans"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bbans"]]
 
-
-                        # Processando decider
-                        m = p["pickban"]["decider"]
-                        pool.append(m)
+                    # Processando picks
+                    pool.extend(p["pickban"]["Apicks"])
+                    for m in p["pickban"]["Apicks"]:
                         if m.lower().strip() not in self.map_dict:
                             map_id = self.__create_map(m.capitalize(), cur)
                             self.map_dict[m.lower().strip()] = [map_id, True]
                             map_added = True
-                        pb["decider"] = int(self.map_dict[m.lower().strip()][0])
+                    pb["Apicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Apicks"]]
 
-                        pickban_str = json.dumps(pb)
+                    pool.extend(p["pickban"]["Bpicks"])
+                    for m in p["pickban"]["Bpicks"]:
+                        if m.lower().strip() not in self.map_dict:
+                            map_id = self.__create_map(m.capitalize(), cur)
+                            self.map_dict[m.lower().strip()] = [map_id, True]
+                            map_added = True
+                    pb["Bpicks"] = [int(self.map_dict[m.lower().strip()][0]) for m in p["pickban"]["Bpicks"]]
 
-                        pool_change = False
-                        for map in pool:
-                            if not self.map_dict[map.lower().strip()][1]:
-                                pool_change = True
-                                break
 
-                        if map_added:
+                    # Processando decider
+                    m = p["pickban"]["decider"]
+                    pool.append(m)
+                    if m.lower().strip() not in self.map_dict:
+                        map_id = self.__create_map(m.capitalize(), cur)
+                        self.map_dict[m.lower().strip()] = [map_id, True]
+                        map_added = True
+                    pb["decider"] = int(self.map_dict[m.lower().strip()][0])
+
+                    pickban_str = json.dumps(pb)
+
+                    pool_change = False
+                    for map in pool:
+                        if not self.map_dict[map.lower().strip()][1]:
                             pool_change = True
+                            break
 
-                        if pool_change:
-                            pool_id = []
-                            for map in self.map_dict:
-                                self.map_dict[map][1] = 0
-                            for i, map in enumerate(pool):
-                                self.map_dict[map.lower().strip()][1] = 1
-                                pool_id.append(self.map_dict[map.lower().strip()][0])
+                    if map_added:
+                        pool_change = True
 
-                            cur.execute("""
-                                UPDATE mapas_lista SET in_pool = FALSE
-                                        """)
-                            cur.execute("""
-                                UPDATE mapas_lista SET in_pool = TRUE
-                                WHERE id = ANY(%s)""", (pool_id,))
-                        
-                        # 1. Inserir/Atualizar a Partida
+                    if pool_change:
+                        pool_id = []
+                        for map in self.map_dict:
+                            self.map_dict[map][1] = 0
+                        for i, map in enumerate(pool):
+                            self.map_dict[map.lower().strip()][1] = 1
+                            pool_id.append(self.map_dict[map.lower().strip()][0])
+
                         cur.execute("""
-                            INSERT INTO partidas (id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (id) DO UPDATE SET 
-                                camp_id = EXCLUDED.camp_id,
-                                vencedor_time_letra = EXCLUDED.vencedor_time_letra;
-                        """, (id_partida, p['camp'], id_time_a, id_time_b, pickban_str, p['winner']))
+                            UPDATE mapas_lista SET in_pool = FALSE
+                                    """)
+                        cur.execute("""
+                            UPDATE mapas_lista SET in_pool = TRUE
+                            WHERE id = ANY(%s)""", (pool_id,))
+                    
+                    # 1. Inserir/Atualizar a Partida
+                    cur.execute("""
+                        INSERT INTO partidas (id, camp_id, timea_id, timeb_id, pickban_log, vencedor_time_letra)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (id) DO UPDATE SET 
+                            camp_id = EXCLUDED.camp_id,
+                            vencedor_time_letra = EXCLUDED.vencedor_time_letra;
+                    """, (id_partida, p['camp'], id_time_a, id_time_b, pickban_str, p['winner']))
 
-                        # 2. Processar a lista de mapas (MD3 ou MD5)
-                        for mapa in p['mapas']:
-   
-                            # No seu JSON: composicoes[0] é o Time A, composicoes[1] é o Time B
-                            id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0], cur)
-                            id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1], cur)
+                    # 2. Processar a lista de mapas (MD3 ou MD5)
+                    for mapa in p['mapas']:
 
-                            id_mapa = self.map_dict.get(mapa['id'].lower().strip())[0]
-                            # 3. Inserir o Mapa jogado, associando à partida e às composições
-                            # Note: 'atk' no seu JSON vira 'atk_start' no banco
-                            cur.execute("""
-                                INSERT INTO mapas_jogados (partida_id, mapa_id, atk_start, compA_id, compB_id, rounds_string, vencedor_mapa)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            """, (id_partida, id_mapa, mapa['atk'], id_comp_a, id_comp_b, mapa['rounds'], mapa['win']))
+                        # No seu JSON: composicoes[0] é o Time A, composicoes[1] é o Time B
+                        id_comp_a = self.__get_or_create_comp(mapa['composicoes'][0], cur)
+                        id_comp_b = self.__get_or_create_comp(mapa['composicoes'][1], cur)
 
-                    conn.commit()
+                        id_mapa = self.map_dict.get(mapa['id'].lower().strip())[0]
+                        # 3. Inserir o Mapa jogado, associando à partida e às composições
+                        # Note: 'atk' no seu JSON vira 'atk_start' no banco
+                        cur.execute("""
+                            INSERT INTO mapas_jogados (partida_id, mapa_id, atk_start, compA_id, compB_id, rounds_string, vencedor_mapa)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, (id_partida, id_mapa, mapa['atk'], id_comp_a, id_comp_b, mapa['rounds'], mapa['win']))
 
-        # except Exception as e:
-        #     print(f"Erro durante a migração: {e}")
+                    for data in p['stats_data']:
+                        cur.execute("""
+                            INSERT INTO players_map_stats (
+                                player_id, match_id, map_id, team_id, rating, 
+                                acs, adr, kast, hs, kd, kda, fk, fd
+                            ) VALUES (
+                                %(player_id)s, %(match_id)s, %(map_id)s, %(team_id)s, %(rating)s, 
+                                %(acs)s, %(adr)s, %(kast)s, %(hs)s, %(kd)s, %(kda)s, %(fk)s, %(fd)s
+                            )
+                            ON CONFLICT (player_id, match_id, map_id) DO UPDATE SET
+                                team_id = EXCLUDED.team_id,
+                                rating  = EXCLUDED.rating,
+                                acs     = EXCLUDED.acs,
+                                adr     = EXCLUDED.adr,
+                                kast    = EXCLUDED.kast,
+                                hs      = EXCLUDED.hs,
+                                kd      = EXCLUDED.kd,
+                                kda     = EXCLUDED.kda,
+                                fk      = EXCLUDED.fk,
+                                fd      = EXCLUDED.fd;
+                        """, data)
+
+                conn.commit()
+
+
 
     def __load_id_maps(self, cur):
         cur.execute("SELECT id, nome, in_pool FROM mapas_lista")

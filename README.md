@@ -8,6 +8,76 @@ A Valorant bot developed by a Computer Science student as a practical applicatio
 
 **Visualization:** Website (Linked in the "About" section of the repository) is now available. It features the same commands from the original Discord Bot, but with interactive dashboards for better visualization.
 
+### v3.1.0
+**Data Changes**: The `times` table now populates new records dynamically during the scraping phase, along with `mapas_lista` and its `pool` column. The data structure has been refactored to align with the updated [Database Schema](README.md#database)
+
+#### New tables:
+
+- **`team_ratings`**: Associates a team with a map to store its Rating and `pickpoints`. 
+  - **Map ID `0`** represents the team's "General" (overall) rating. To establish a reliable baseline, general ratings were seeded post-Kickoff using tournament placements:
+    - **1st:** 1400 | **2nd:** 1350 | **3rd–6th:** 1300–1150 | **7th–8th:** 1075 | **9th–10th:** 975 | **11th–12th:** 875
+  - Map-specific ratings start at `1000` default.
+  - **`pickpoints`**: Quantifies a team's map preference based on Pick/Ban phase choices:
+  
+  -----
+
+  **BO3 Pick/Ban Weights** *(Assuming Team A bans/picks first)*:
+  | Team | Ban 1 | Ban 2 | Pick 1 | Pick 2 | Ban 3 | Ban 4 | Decider |
+  | :---: | :---: | :---: | :----: | :----: | :---: | :---: | :-----: |
+  | **A** | -4 | 0 | +3 | 0 | -2 | +1 | +1 |
+  | **B** | 0 | -3 | 0 | +2 | 0 | -1 | +1 |
+
+  ---
+
+  **BO5 Pick/Ban Weights** *(Standard / No Advantage)*:
+  | Team | Ban 1 | Ban 2 | Pick 1 | Pick 2 | Pick 3 | Pick 4 | Decider |
+  | :---: | :---: | :---: | :----: | :----: | :----: | :----: | :-----: |
+  | **A** | -4 | 0 | +3 | 0 | +2 | 0 | 0 |
+  | **B** | 0 | -3 | 0 | +2 | 0 | +1 | 0 |
+
+  ---
+
+  **BO5 Pick/Ban Weights** *(Upper Bracket Advantage for Team A)*:
+  | Team | Ban 1 | Ban 2 | Pick 1 | Pick 2 | Pick 3 | Pick 4 | Decider |
+  | :---: | :---: | :---: | :----: | :----: | :----: | :----: | :-----: |
+  | **A** | -4 | -3 | +3 | 0 | +2 | 0 | 0 |
+  | **B** | 0 | 0 | 0 | +2 | 0 | +1 | 0 |
+
+  -----
+
+- **`players_map_stats`**: Stores individual player performance statistics per map per match. Will be used to generate detailed team/map overviews in informational commands (similar to `players_stats`).
+
+#### Updated Table Columns:
+
+- **`partidas`**:
+  - `rated` (`BOOLEAN`): Tracks rating execution (`FALSE` = pending calculation, `TRUE` = already processed).
+  - `seq_num` (`INTEGER IDENTITY`): Preserves strict chronological match sequence regardless of VLR match ID order.
+- **`campeonatos`**:
+  - `winner` (`INTEGER`, Nullable): References the team ID of the tournament winner (`NULL` if ongoing).
+  - `rated` (`BOOLEAN`, Nullable): Controls international tournament calibration lifecycle:
+    - **`NULL`**: Regional tournaments (exempt from inter-regional calibration).
+    - **`FALSE`**: International tournaments awaiting rating calibration.
+    - **`TRUE`**: Fully processed international tournaments.
+
+  ---
+
+  **International Calibration Rewards:**
+
+  | Individual Top 3 | Points |
+  | :---: | :---: |
+  | **1st Place** | +80 |
+  | **2nd Place** | +40 |
+  | **3rd Place** | +10 |
+
+  | Regional Ranking | Points |
+  | :---: | :---: |
+  | **1st Region** | +40 |
+  | **2nd Region** | +10 |
+  | **3rd Region** | -10 |
+  | **4th Region** | -40 |
+
+  > **Note: If regions tie in total match wins, points for the tied positions are averaged.**
+
 ---
 
 ## Features & Showcase
@@ -215,6 +285,7 @@ Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The dat
 ---
 
 ## How to Run
+
 1. Clone the repository.
 2. Install dependencies: `pip install -r requirements.txt`.
 3. Set up the Database (see [QuickBuild](#quickbuild-of-database)).
@@ -225,6 +296,7 @@ Hosted on PostgreSQL (Neon Tech free plan: 0.5GB storage, 100 CU-hours). The dat
 ---
 
 ### QuickBuild of Database
+
 To replicate the database on Neon Tech:
 1. Access [Neon Tech Console](https://console.neon.tech/).
 2. Create a new project.
@@ -232,7 +304,7 @@ To replicate the database on Neon Tech:
 4. Copy and execute the [SQL script](./assets/sql_script.sql) provided to generate the tables and foreign keys.
 5. Copy your connection string from the dashboard. 
    *Note: Ensure `sslmode=require` is present in the URL.*
-6. **Manual Data Seeding:** Some tables do not auto-populate in this version. You should checkout the `discBot_prototype` branch and use `migrar.ipynb` to populate the `times`, `mapas_lista`, and `agentes` tables. Note that some records (like `campeonatos`) must be added manually. You will also need to manually update these tables when new maps or agents are released, or when the map pool changes.
+6. **Manual Data Seeding:** Some tables do not auto-populate in this version. Records like `campeonatos` and `agentes` must be added manually. You will also need to manually update these tables when new agents are released or when you want to add a new tournament to the database.
 
 ---
 

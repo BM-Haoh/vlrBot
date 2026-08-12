@@ -1,3 +1,4 @@
+from numpy import info
 import pandas as pd
 from tqdm import tqdm
 from time import sleep
@@ -8,65 +9,6 @@ from selenium.webdriver.chrome.options import Options
 import psycopg
 import os
 from dotenv import load_dotenv
-
-team_dict ={
-    # Americas
-    'G2 Esports': 'G2',
-    'KRÜ Esports': 'KRÜ',
-    'MIBR': 'MIBR',
-    '100 Thieves': '100T',
-    'Sentinels': 'SEN',
-    'Evil Geniuses': 'EG',
-    'NRG': 'NRG',
-    'Cloud9': 'C9',
-    'LEVIATÁN': 'LEV',
-    'LOUD': 'LOUD',
-    'FURIA': 'FUR',
-    'ENVY': 'ENVY',
-    
-    # EMEA
-    'FNATIC': 'FNC',
-    'Natus Vincere': "NAVI",
-    'Karmine Corp': "KC",
-    'FUT Esports': 'FUT',
-    'Gentle Mates': "M8",
-    "PCIFIC Esports": "PCF",
-    "BBL Esports": "BBL",
-    "ULF Esports": "ULF",
-    "Team Vitality": "VIT",
-    "Team Heretics": "TH",
-    "GIANTX": "GX",
-    "Team Liquid": "TL",
-    "Eternal Fire": "EF",
-    
-    # China
-    "Trace Esports": "TE",
-    "Wolves Esports": "WOL",
-    "FunPlus Phoenix": "FPX",
-    "TYLOO": "TYL",
-    "All Gamers": "AG",
-    "Nova Esports": "NOVA",
-    "JD Mall JDG Esports": "JDG",
-    "Wuxi Titan Esports Club": "TEC",
-    "Xi Lai Gaming": "XLG",
-    "EDward Gaming": "EDG",
-    "Guangzhou Huadu Bilibili Gaming": "BLG",
-    "Dragon Ranger Gaming": "DRG",
-
-    # APAC
-    "Nongshim RedForce": "NS",
-    "Team Secret": "TS",
-    "ZETA DIVISION": "ZETA",
-    "FULL SENSE": "FS",
-    "VARREL": "VL",
-    "Global Esports": "GE",
-    "DetonatioN FocusMe": "DFM",
-    "Gen.G": "GEN",
-    "T1": "T1",
-    "Kiwoom DRX": "KRX",
-    "Paper Rex": "PRX",
-    "Rex Regum Qeon": "RRQ"
-}
 
 def abrir_site(link=None):
     '''
@@ -104,12 +46,57 @@ def get_times(navegador):
     ## Function that returns team A and team B of a match
     
     :param navegador: vlr's browser of the match
-    :return TeamA: team A str name
-    :return TeamB:  team B str name
+    :return Team_text: team A and team B str names
+    :return register_links: list of links to register the teams
     '''
-    times = navegador.find_elements(By.CLASS_NAME, 'wf-title-med')
-    times = [time.text.split("\n")[0] for time in times]
-    return times
+    times = navegador.find_elements(By.CLASS_NAME, 'match-header-link')
+
+    times_text = [time.text.split("\n")[0] for time in times]
+    times_text = [time.lower() for time in times_text]
+
+    register_links = [time.get_attribute("href") for time in times]
+    return times_text, register_links
+
+def register_team(navegador, register_link, times, cur):
+    '''
+    ## Function that registers a team in the database
+    
+    :param navegador: vlr's browser of the match
+    :param register_link: link to register the team
+    :param cur: psycopg cursor object
+    :return name: team name
+    :return tag: team tag
+    '''
+
+    navegador.get(register_link)
+    sleep(.5)
+
+    info  = navegador.find_element(By.CLASS_NAME, 'team-header-name').text.split(" ")
+    name = " ".join(info[:-1]).lower()
+    tag = info[-1].upper()
+
+    if not times.get(name):
+        img = navegador.find_element(By.CLASS_NAME, 'team-header-logo').find_element(By.TAG_NAME, 'img').get_attribute("src")
+
+        team_data = {
+            'nome': name,
+            'tag': tag,
+            'regiao': '?',
+            'emoji': '<:vlr:1534078145177583636>',
+            'img_url': img
+        }
+        cur.execute("""
+            INSERT INTO times (nome, tag, regiao, emoji, img_url)
+            VALUES (%(nome)s, %(tag)s, %(regiao)s, %(emoji)s, %(img_url)s)
+            RETURNING id;
+            """, 
+            team_data
+        )
+
+    return name, tag
+    
+    # Se quiser pegar o ID recém-criado:
+    # novo_id = cur.fetchone()[0]
 
 def get_placar(navegador):
     '''
@@ -182,9 +169,150 @@ def next_map(navegador, dict_maps, picks, map_pointer, current_url):
     :param dict_maps: dictionary with map names as keys and map objects as values
     :param picks: list of maps piccked
     :param map_pointer: integer
+    :return id: str with the current map's ID (to be used in the database)
     '''
     id = dict_maps[picks[map_pointer][1]]
     navegador.get(f"{current_url}/?game={id}&tab=overview")
+
+    return id
+
+def register_map_stats(navegador, map_id, map_name, match_id, times, cur):
+    # all the map sections
+    maps = navegador.find_elements(By.CLASS_NAME, 'vm-stats-game')
+
+    for map in maps:
+        # finding the correct map section
+        if map.get_attribute('data-game-id') != map_id:
+            continue
+        
+        # Getting all the stats of the map
+        stats = map.find_elements(By.CLASS_NAME, 'ovw-scroll-wrap')
+        
+        StatsA = []
+        StatsB = []
+
+        for i, stat in enumerate(stats):
+            linhas = stat.find_elements(By.CLASS_NAME, 'ovw-row')
+
+            for row in linhas:
+                if "mod-head" in row.get_attribute('class'):
+                    continue
+
+                statsA = {"time": times[0]}
+                statsB = {"time": times[1]}
+                itens = row.find_elements(By.CLASS_NAME, 'ovw-cell')
+                for item in itens:
+                    if "mod-player" in item.get_attribute('class'):
+                        name = item.find_element(By.CLASS_NAME, 'ovw-player-name').text
+
+                        if i == 0:
+                            statsA["player"] = name
+                        else:
+                            statsB["player"] = name
+
+                    elif item.get_attribute('data-col') in ["kd-diff", "fk-diff"]:
+                        continue
+
+                    elif "mod-kda" in item.get_attribute('class'):
+                        kda_stats = item.find_elements(By.CLASS_NAME, 'ovw-kda-stat')
+                        for kda_stat in kda_stats:
+                            col = kda_stat.get_attribute('data-col')
+                            value = kda_stat.find_element(By.CLASS_NAME, 'mod-both').text
+                            if i == 0:
+                                statsA[col] = value
+                            else:
+                                statsB[col] = value
+
+                    else:
+                        col = item.get_attribute('data-col')
+                        value = item.find_element(By.CLASS_NAME, 'mod-both').text
+
+                        if i == 0:
+                            statsA[col] = value
+                        else:
+                            statsB[col] = value
+
+                if i == 0:
+                    StatsA.append(statsA)
+                else:
+                    StatsB.append(statsB)
+        break
+
+    cur.execute("SELECT id, nome FROM players")
+    players = {nome: id for id, nome in cur.fetchall()}
+
+    cur.execute("SELECT id, tag FROM times")
+    teams = {tag: id for id, tag in cur.fetchall()}
+
+    cur.execute("SELECT id, nome FROM mapas_lista")
+    maps = {nome: id for id, nome in cur.fetchall()}
+
+    stats = StatsA + StatsB
+
+    Full_data = []
+
+    for player in stats:
+        player_name = player.get("player")
+
+        if player_name not in players:
+            cur.execute("INSERT INTO players (nome) VALUES (%s) RETURNING id", (player_name,))
+            player_id = cur.fetchone()[0]
+            
+            players[player_name] = player_id
+
+        kills = to_int(player.get("kills")) or 0
+        deaths = to_int(player.get("deaths")) or 0
+        assists = to_int(player.get("assists")) or 0
+        fk = to_int(player.get("fb")) or 0
+        fd = to_int(player.get("fd")) or 0
+
+        kast_raw = to_float(player.get("kast"))
+        kast = (kast_raw / 100.0) if kast_raw is not None else None
+
+        hs_raw = to_float(player.get("hsp"))
+        hs = (hs_raw / 100.0) if hs_raw is not None else None
+
+        safe_deaths = deaths if deaths > 0 else 1
+
+        kd = round(kills / safe_deaths, 2)
+        kda = round((kills + assists) / safe_deaths, 2)
+
+        data = {
+            "player_id": players[player_name],
+            "match_id": match_id,
+            "map_id": maps[map_name],
+            "team_id": teams[player.get("time")],
+            "rating": to_float(player.get("rating2")),
+            "acs": to_int(player.get("acs")),
+            "adr": to_int(player.get("adr")),
+            "kast": kast,
+            "hs": hs,
+            "kd": kd,
+            "kda": kda,
+            "fk": fk,
+            "fd": fd,
+        }
+
+        Full_data.append(data)
+
+    return Full_data
+
+def to_float(val):
+    """str to float. Returns None if empty."""
+    if val is None:
+        return None
+    clean_val = str(val).replace('%', '').strip()
+    if clean_val == '' or clean_val == '-':
+        return None
+    try:
+        return float(clean_val)
+    except ValueError:
+        return None
+
+def to_int(val):
+    """str to int. Returns None if empty."""
+    f_val = to_float(val)
+    return int(f_val) if f_val is not None else None
 
 def get_agents_completed(navegador):
     '''
@@ -297,11 +425,17 @@ class tournament_manager():
     :ivar matches: list with each tournament's match link
 
     :param link: string with a vlr.gg tournament page link
-    :param team_dict: (optional - one is already loadded) dictionary used to translate teams names into teams tags
     '''
-    def __init__(self, link=None, team_dict=team_dict):
+    def __init__(self, link=None):
         self.browser = abrir_site(link)
-        self.teams = team_dict
+
+        load_dotenv()
+        
+        with psycopg.connect(os.getenv("DATABASE_URL")) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT nome, tag FROM times")
+                self.teams = {nome.lower(): tag for nome, tag in cur.fetchall()}
+
         self.camp = ''
         self.matches = []
         self.current_url = ""
@@ -325,16 +459,43 @@ class tournament_manager():
                 for url, id in camps:
                     completed = self.__is_completed(url)
                     self.camp = id
-                    self.matches = self.__get_games()
+                    self.matches = self.__get_games(cur)
                     self.matches.reverse()
-                    matches.extend(self.__game_catalog())
+                    # saving __game_catalog() results to be able to process the camps faster
+                    this_camp_matches = self.__game_catalog(cur)
+                    matches.extend(this_camp_matches)
 
-                    condition = self.sts_mng.get_table(self.__stats_table(url), id)
-                    if condition:
-                        self.sts_mng.save()
-                    
+                    # since __game_catalog() result is saved,
+                        # we can check if the current tournamente has new matches or no
+                        # if it hasn't, we can skip the stats_manager() processing, since it will be the same as the last time
+                        # if it has, we will process the stats_manager() to update the stats of the tournament with the new matches
+                    if this_camp_matches:
+                        condition = self.sts_mng.get_table(self.__stats_table(url), id)
+                        if condition:
+                            self.sts_mng.save(cur)
+
+                    winner_info = (0,)
                     if completed:
-                        cur.execute("UPDATE campeonatos SET completo = TRUE WHERE id = %s", (self.camp,))
+                        self.browser.get(url)
+                        sleep(.5)
+
+                        standings = self.browser.find_element(By.CLASS_NAME, 'wf-ptable--standings')
+                        if standings:
+                            posicoes = standings.find_elements(By.CLASS_NAME, 'mod-team')
+
+                            if posicoes:
+
+                                pri_lugar = posicoes[0].find_element(By.CLASS_NAME, 'text-of').text
+                                pri_lugar = pri_lugar.split("\n")[0]
+
+                                team_tag = self.teams.get(pri_lugar.lower())
+
+                                if team_tag:
+
+                                    cur.execute("SELECT id FROM times WHERE tag = %s", (team_tag,))
+                                    winner_info = cur.fetchone()
+
+                        cur.execute("UPDATE campeonatos SET completo = TRUE, winner = %s WHERE id = %s", (winner_info[0], self.camp,))
                         conn.commit()      
                 
                 return matches
@@ -350,6 +511,7 @@ class tournament_manager():
         for item in nav_itens:
             if 'matches' in item.get_attribute("href"):
                 self.browser.get(item.get_attribute("href"))
+                sleep(1)
                 break
 
         if len(self.browser.find_element(By.CLASS_NAME, 'zx-subnav--filter') \
@@ -364,7 +526,7 @@ class tournament_manager():
         self.browser.get(url)
         return len(ongoing) == 0
 
-    def match_info(self):
+    def match_info(self, cur):
         '''
         processing match information
         
@@ -375,13 +537,21 @@ class tournament_manager():
         placar = get_placar(self.browser).split(' : ')
 
         # Getting the teams
-        times = get_times(self.browser)
+        times, register_links = get_times(self.browser)
 
         # Trying to catch showmatches;
             # It will ignore games of teams not registered
-        for time in times:
+        for i, time in enumerate(times):
             if not (self.teams.get(time)):
-                return
+                self.current_url = self.browser.current_url
+
+                name, tag = register_team(self.browser, register_links[i], self.teams, cur)
+
+                self.teams[name] = tag
+                self.teams[time] = tag
+
+                self.browser.get(self.current_url)
+                sleep(.5)
 
         # Getting the pick/ban
         bans, picks = get_pickban(self.browser)
@@ -396,9 +566,12 @@ class tournament_manager():
 
         # Garanting it won't access maps that weren't played
         end = int(placar[0]) + int(placar[1])
+
+        match_id = self.__get_id()
+        full_data = []
         for i, map in enumerate(picks[:end]):
             # Oppening map inside the page
-            next_map(self.browser, maps_btns, picks, map_pointer, self.current_url)
+            current_map_id = next_map(self.browser, maps_btns, picks, map_pointer, self.current_url)
             sleep(.2)
             map_pointer += 1
             atk, rnd_sqc = map_treatment(self.browser, map[1])
@@ -413,16 +586,18 @@ class tournament_manager():
                 }
             )
 
-        id = self.__get_id()
-
+            data = register_map_stats(self.browser, current_map_id, map[1], int(match_id), (self.teams[times[0]], self.teams[times[1]]), cur)
+            full_data.extend(data)
+            
         # Dict formatted to be stored
         return {
-            'id': int(id),
+            'id': int(match_id),
             'camp': self.camp,
             'times': [self.teams[times[0]], self.teams[times[1]]],
             'mapas': map_infos[:],
             'pickban': pickban,
-            'winner': "A" if placar[0] > placar[1] else "B"
+            'winner': "A" if placar[0] > placar[1] else "B",
+            'stats_data': full_data
         }
 
     def __get_id(self, link=None):
@@ -432,7 +607,7 @@ class tournament_manager():
         url = self.browser.current_url
         return url.split('/')[3]
 
-    def __get_games(self):
+    def __get_games(self, cur):
         '''
         :return matches: list of "match elements" -> .click() = window with match info
         '''
@@ -447,30 +622,34 @@ class tournament_manager():
             # When they have both, it will be 1, else 0 
             # (If it has "Stage" but "All" is selected, we don't have to treat this section, 
             # and it will ignore the stage category)
-        if len(self.browser.find_element(By.CLASS_NAME, 'opt') \
+        '''if len(self.browser.find_element(By.CLASS_NAME, 'opt') \
                            .find_elements(By.PARTIAL_LINK_TEXT, 'All')):
             # Stage category identified, changing the option of it to "All"
-            self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))
+            self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'All').get_attribute('href'))'''
+        current_url = self.browser.current_url
+        count = 0
+        pos = -1
+        while current_url[pos] != "=":
+            count -= 1
+            pos -= 1
+        current_url = current_url[:count] + "all"
+        self.browser.get(current_url)
 
         # Status is "All" by default (in the website). We are changing it to completed
         self.browser.get(self.browser.find_element(By.PARTIAL_LINK_TEXT, 'Completed').get_attribute('href'))
 
-        load_dotenv()
-        DB_URL = os.getenv("DATABASE_URL")
-
-        with psycopg.connect(DB_URL) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT id FROM partidas WHERE camp_id = %s", (self.camp,))
-                registered_matches = [str(r[0]) for r in cur.fetchall()]
-                matches = []
-                for match in self.browser.find_elements(By.CLASS_NAME, 'match-item'):
-                    if match.get_attribute("href").split('/')[3] in registered_matches:
-                        continue
-                    matches.append(match.get_attribute("href"))
-                
-                return matches
+        # Removing "with psycopg... as cur:" because it may cause problems with the connection.
+        cur.execute("SELECT id FROM partidas WHERE camp_id = %s", (self.camp,))
+        registered_matches = [str(r[0]) for r in cur.fetchall()]
+        matches = []
+        for match in self.browser.find_elements(By.CLASS_NAME, 'match-item'):
+            if match.get_attribute("href").split('/')[3] in registered_matches:
+                continue
+            matches.append(match.get_attribute("href"))
+        
+        return matches
     
-    def __game_catalog(self):
+    def __game_catalog(self, cur):
         '''
         :return catalog: list of dict items with formatted match info
         '''
@@ -487,7 +666,7 @@ class tournament_manager():
 
             self.current_url = self.browser.current_url
             
-            info = self.match_info()
+            info = self.match_info(cur)
 
             # If teams not registered, match_info returns Null, and that game is not considered
             if info:
@@ -517,6 +696,7 @@ class tournament_manager():
         decider = ""
 
         # Checking which team banned each banned map
+        first_ban = "A" if bans[0][0] == self.teams[times[0]] else "B"
         for ban in bans:
             if ban[0] == self.teams[times[0]]:
                 Abans.append(ban[1])
@@ -538,6 +718,7 @@ class tournament_manager():
         
         # Associating before adding in the dictionary
         pickban = {
+            "first": first_ban,
             "Abans": Abans, 
             "Bbans": Bbans, 
             "Apicks": Apicks, 
@@ -683,47 +864,42 @@ class stats_manager():
         self.table["TEAM"] = self.table["TEAM"].map(self.teams)
         self.table["PLAYER"] = self.table["PLAYER"].map(self.players)
         
-    def save(self):
-        load_dotenv()
-        DB_URL = os.getenv("DATABASE_URL")
+    def save(self, cur):
+        self.__get_info(cur)
 
-        with psycopg.connect(DB_URL) as conn:
-            with conn.cursor() as cur:
-                self.__get_info(cur)
-
-                try:
-                    for row in self.table.itertuples():
-                        cur.execute(""" 
-                                INSERT INTO stats_players (
-                                id_player, id_time, id_camp, rating, acs, kd, 
-                                kast, adr, kpr, apr, fkfd, hs, cl
-                                ) 
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                ON CONFLICT (id_player, id_time, id_camp)
-                                DO UPDATE SET 
-                                    rating = EXCLUDED.rating, 
-                                    acs = EXCLUDED.acs, 
-                                    kd = EXCLUDED.kd, 
-                                    kast = EXCLUDED.kast, 
-                                    adr = EXCLUDED.adr, 
-                                    kpr = EXCLUDED.kpr, 
-                                    apr = EXCLUDED.apr, 
-                                    fkfd = EXCLUDED.fkfd,
-                                    hs = EXCLUDED.hs, 
-                                    cl = EXCLUDED.cl
-                                """, 
-                                (
-                                    row.PLAYER, row.TEAM, row.CAMP, row.RATING, 
-                                    row.ACS, row.KD, row.KAST, row.ADR, 
-                                    row.KPR, row.APR, row.FKFD, row.HS, 
-                                    row.CL  
-                                )
-                            )
-                except Exception as e:
-                    print(f"ID_PLAYER: {row.PLAYER} (Tipo: {type(row.PLAYER)}), ID_TEAM: {row.TEAM} (Tipo: {type(row.TEAM)}), ID_CAMP: {row.CAMP} (Tipo: {type(row.CAMP)})")
-                    raise e
-                
-                print(f"Stats of tournament {self.id} saved successfully.")
+        try:
+            for row in self.table.itertuples():
+                cur.execute(""" 
+                        INSERT INTO stats_players (
+                        id_player, id_time, id_camp, rating, acs, kd, 
+                        kast, adr, kpr, apr, fkfd, hs, cl
+                        ) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (id_player, id_time, id_camp)
+                        DO UPDATE SET 
+                            rating = EXCLUDED.rating, 
+                            acs = EXCLUDED.acs, 
+                            kd = EXCLUDED.kd, 
+                            kast = EXCLUDED.kast, 
+                            adr = EXCLUDED.adr, 
+                            kpr = EXCLUDED.kpr, 
+                            apr = EXCLUDED.apr, 
+                            fkfd = EXCLUDED.fkfd,
+                            hs = EXCLUDED.hs, 
+                            cl = EXCLUDED.cl
+                        """, 
+                        (
+                            row.PLAYER, row.TEAM, row.CAMP, row.RATING, 
+                            row.ACS, row.KD, row.KAST, row.ADR, 
+                            row.KPR, row.APR, row.FKFD, row.HS, 
+                            row.CL  
+                        )
+                    )
+        except Exception as e:
+            print(f"ID_PLAYER: {row.PLAYER} (Tipo: {type(row.PLAYER)}), ID_TEAM: {row.TEAM} (Tipo: {type(row.TEAM)}), ID_CAMP: {row.CAMP} (Tipo: {type(row.CAMP)})")
+            raise e
+        
+        print(f"Stats of tournament {self.id} saved successfully.")
 
     def __pre_processing_table(self, param, id):
         table = creating_table(param)

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from math import ceil
 import pandas as pd
 import asyncio
 import psycopg
@@ -36,18 +37,48 @@ async def load_id_comps(cur):
     return {int(id): [int(agent1), int(agent2), int(agent3), int(agent4), int(agent5)] for id, agent1, agent2, agent3, agent4, agent5 in rows}
         
 async def load_id_camps(cur):
-    await cur.execute("SELECT id, nome FROM campeonatos ORDER BY id ASC")
+    await cur.execute("SELECT id, nome, winner, rated FROM campeonatos ORDER BY id ASC")
     rows = await cur.fetchall()
-    return {int(id): nome for id, nome in rows}
 
-async def load_id_partidas(cur, camps_dict):
-    await cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log FROM partidas ORDER BY id DESC")
+    camps = {}
+    toRate_camps = []
+
+    for id, nome, winner, rated in rows:
+        camps[int(id)] = {"nome": nome, "winner": winner}
+
+        if rated is not None:
+            if (not rated) and (winner is not None):
+                toRate_camps.append(int(id))
+
+    return camps, toRate_camps
+
+async def load_id_partidas(cur, camps_dict, unrated_camps):
+    await cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log, rated, seq_num FROM partidas ORDER BY seq_num DESC")
     rows = await cur.fetchall()
-    partidas_cache = [
-        {"id": r[0], "camp_id": camps_dict.get(r[1]), "timeA/B": [r[2], r[3]], "vencedor_time_letra": r[4], "pickban": json.loads(r[5])} 
-        for r in rows
-    ] 
-    return partidas_cache
+    partidas_cache = []
+    toRate_matches = []
+    toRate_campMatches = []
+
+    for r in rows:
+        if not r[6]:
+            toRate_matches.append(r[0])
+
+        if r[1] in unrated_camps:
+            toRate_campMatches.append(r[0])
+
+        partidas_cache.append(
+            {
+                "id": r[0], 
+                "camp_id": camps_dict.get(r[1])["nome"], 
+                "timeA/B": [r[2], r[3]], 
+                "vencedor_time_letra": r[4], 
+                "pickban": json.loads(r[5])
+            } 
+        )
+
+    toRate_matches.reverse()
+
+    return partidas_cache, toRate_matches, toRate_campMatches
 
 async def load_id_mapas_jogados(cur, maps_dict, comps_dict):
     await cur.execute("SELECT id, partida_id, mapa_id, vencedor_mapa, rounds_string, atk_start, compa_id, compb_id FROM mapas_jogados ORDER BY id DESC")
@@ -93,6 +124,53 @@ async def load_team_table(id_time):
     stats_table["KAST"] = pd.to_numeric(stats_table["KAST"], errors='coerce')
 
     return stats_table
+
+async def load_player_map_stats(id_time):
+    async with await get_conn() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                SELECT team_id, match_id, map_id, rating, acs, adr, kast, hs, kd, kda, fk, fd
+                FROM players_map_stats 
+                WHERE team_id = %s 
+                ORDER by match_id DESC
+                """, 
+                (id_time, )
+            )
+            stats_players = await cur.fetchall()
+
+    colunas = ["Team", "Match", "Map", "Rating", "ACS", "ADR", "KAST", "HS", "KD", "KDA", "FK", "FD"]
+
+    stats_table = pd.DataFrame(stats_players, columns=colunas)
+
+    stats_table["KAST"] = pd.to_numeric(stats_table["KAST"], errors='coerce')
+
+    return stats_table
+
+async def load_team_ratings(id_time, curr=None):
+    if curr is None:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    SELECT team_id, map_id, rating, pickpoints
+                    FROM team_ratings
+                    WHERE team_id = %s 
+                    ORDER by map_id DESC
+                    """, (id_time, )
+                )
+                T_ratings = await cur.fetchall()
+    else:
+        await curr.execute("""
+            SELECT team_id, map_id, rating, pickpoints
+            FROM team_ratings
+            WHERE team_id = %s 
+            ORDER by map_id DESC
+            """, (id_time, )
+        )
+        T_ratings = await curr.fetchall()
+
+    Ratings = {map_id: {"rating": rating, "pickpoints": pickpoints} for t_id, map_id, rating, pickpoints in T_ratings}
+
+    return Ratings
 
 def rodar_sync(coroutine):
     """Transforma uma coroutine async em um resultado síncrono imediatamente"""
@@ -347,6 +425,319 @@ class Brain:
 
             return time, matches_descript, time_mapas, df_time
 
+    async def rate_camp(self, unrated_campMatches, unrated_camps):
+        if not unrated_campMatches:
+            print("Rate_camp: No matches found. Returning...")
+            return
+        matches = [p for p in self.partidas if p["id"] in unrated_campMatches]
+
+        regioes = ["Americas", "EMEA", "China", "APAC"]
+        regiao_wins = {regiao: 0 for regiao in regioes}
+        top_3 = []
+
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                for match in matches:
+                    times = match["timeA/B"]
+                    count = 0
+                    for time in self.times:
+                        if time["id"] in times:
+                            times[times.index(time["id"])] = {"id": time["id"], "regiao": time["regiao"]}
+                            count += 1
+                            if count == 2:
+                                break
+
+                    vencedor = ["A", "B"].index(match["vencedor_time_letra"])
+
+                    if times[0]["regiao"] != times[1]["regiao"]: # regional matches doesn't represent a region superiority
+                        wins = regiao_wins.get(times[vencedor]["regiao"], 0)
+                        regiao_wins[times[vencedor]["regiao"]] = wins + 1
+
+                    pickban = match["pickban"]
+
+                    lenAbans = len(pickban.get('Abans', []))
+                    lenBbans = len(pickban.get('Bbans', []))
+                    len_bans = lenAbans + lenBbans
+
+                    md5 = True if len_bans == 2 else False # Best of 5
+
+                    if md5:
+                        if lenAbans in [0, 2]: # Grand Final
+                            # Insert to make sure that the order will be correct no matter what
+                            top_3.insert(0, times[vencedor]["id"]) # First place = index 0
+                            top_3.insert(1, times[(vencedor + 1) % 2]["id"]) # Second place = index 1
+                        else:
+                            top_3.insert(2, times[(vencedor + 1) % 2]["id"]) # Third place = index 2
+
+                posicoes_pts = [40, 10, -10, -40]
+
+                reg_posicoes = sorted(regiao_wins.items(), key=lambda item: item[1], reverse=True)
+
+                if reg_posicoes[0][1] == reg_posicoes[3][1]:
+                    posicoes_pts = [0, 0, 0, 0]
+                elif reg_posicoes[0][1] == reg_posicoes[2][1]:
+                    posicoes_pts = [13, 13, 13, -40]
+                elif reg_posicoes[1][1] == reg_posicoes[3][1]:
+                    posicoes_pts = [40, -13, -13, -13]
+                else:
+                    for i in range(3):
+                        if reg_posicoes[i][1] == reg_posicoes[i+1][1]:
+                            valor = (posicoes_pts[i] + posicoes_pts[i+1]) // 2
+                            posicoes_pts[i] = valor
+                            posicoes_pts[i+1] = valor
+
+                for i, (regiao, wins) in enumerate(reg_posicoes):
+                    if posicoes_pts[i] != 0:
+                        await cur.execute("""
+                            UPDATE team_ratings AS tr
+                            SET rating = tr.rating + %s
+                            FROM times AS t
+                            WHERE tr.team_id = t.id
+                            AND t.regiao = %s
+                            AND tr.map_id = 0;
+                        """, (posicoes_pts[i], regiao))
+
+                if len(top_3) == 3:
+                    f_id, s_id, t_id = top_3
+
+                    await cur.execute("""
+                        UPDATE team_ratings AS tr
+                        SET rating = tr.rating + v.bonus
+                        FROM (VALUES
+                            (%s::integer, 80),
+                            (%s::integer, 40),
+                            (%s::integer, 10)
+                        ) AS v(team_id, bonus)
+                        WHERE tr.team_id = v.team_id
+                        AND tr.map_id = 0;
+                    """, (f_id, s_id, t_id))
+                else:
+                    print(f"Aviso: Top 3 incompleto ou mal formado. Encontraos {len(top_3)} times.")
+
+                await cur.execute("""
+                    UPDATE campeonatos
+                    SET rated = TRUE
+                    WHERE id = ANY(%s)
+                """, (unrated_camps, ))
+
+                await conn.commit()
+
+    async def rate_matches(self, unrated_matches):
+        if not unrated_matches:
+            print("rate_matches: No matches found. Returning...")
+            return
+        # FOR TESTS:
+        #unrated_matches = unrated_matches[:1]
+        matches = [p for p in self.partidas if p["id"] in unrated_matches]
+        matches.reverse()
+
+        mapas = {id: {} for id in unrated_matches}
+
+        for m in self.mapas_jogados:
+            if m["partida_id"] in unrated_matches:
+                mapas[m["partida_id"]][m["id_mapa"]] = m
+
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                for match in matches:
+                    timeA, timeB = match["timeA/B"]
+                    vencedor = match["vencedor_time_letra"]
+
+                    pickban = match["pickban"]
+                    starter = pickban["First"]
+                    pickban.pop("First")
+
+                    pickpts_updt = [] # What we need to change in pickpoints
+
+                    lenAbans = len(pickban.get('Abans', []))
+                    lenBbans = len(pickban.get('Bbans', []))
+                    len_bans = lenAbans + lenBbans
+
+                    md5 = True if len_bans == 2 else False # Is the match a BO5?
+                    
+                    if starter == "A":
+                        ### BANS
+                            # A Session
+                        pickpts_updt.append((timeA, pickban['Abans'][0], -4))
+
+                        if lenAbans == 2:
+                            if md5:
+                                pickpts_updt.append((timeA, pickban['Abans'][1], -3))
+                            else:
+                                pickpts_updt.append((timeA, pickban['Abans'][1], -2))
+                                pickpts_updt.append((timeA, pickban["Bbans"][1], +1))
+                                pickpts_updt.append((timeA, pickban['decider'], +1))
+
+                            # B Session
+                        if lenBbans == 2:
+                            pickpts_updt.append((timeB, pickban['Bbans'][0], -3))
+                            pickpts_updt.append((timeB, pickban['Bbans'][1], -1))
+                            pickpts_updt.append((timeB, pickban['decider'], +1))
+                        elif lenBbans == 1:
+                            pickpts_updt.append((timeB, pickban['Bbans'][0], -3))
+
+                        ### PICKS
+                        pickpts_updt.append((timeA, pickban['Apicks'][0], +3))
+                        pickpts_updt.append((timeB, pickban['Bpicks'][0], +2))
+
+                        if md5:
+                            pickpts_updt.append((timeA, pickban['Apicks'][1], +2))
+                            pickpts_updt.append((timeB, pickban['Bpicks'][1], +1))
+
+                    else:
+                        ### BANS
+                            # B Session
+                        pickpts_updt.append((timeB, pickban['Bbans'][0], -4))
+
+                        if lenBbans == 2:
+                            if md5:
+                                pickpts_updt.append((timeB, pickban['Bbans'][1], -3))
+                            else:
+                                pickpts_updt.append((timeB, pickban['Bbans'][1], -2))
+                                pickpts_updt.append((timeB, pickban["Abans"][1], +1))
+                                pickpts_updt.append((timeB, pickban['decider'], +1))
+
+                            # A Session
+                        if lenAbans == 2:
+                            pickpts_updt.append((timeA, pickban['Abans'][0], -3))
+                            pickpts_updt.append((timeA, pickban['Abans'][1], -1))
+                            pickpts_updt.append((timeA, pickban['decider'], +1))
+                        elif lenAbans == 1:
+                            pickpts_updt.append((timeA, pickban['Abans'][0], -3))
+
+                        ### PICKS
+                        pickpts_updt.append((timeB, pickban['Bpicks'][0], +3))
+                        pickpts_updt.append((timeA, pickban['Apicks'][0], +2))
+
+                        if md5:
+                            pickpts_updt.append((timeB, pickban['Bpicks'][1], +2))
+                            pickpts_updt.append((timeA, pickban['Apicks'][1], +1))
+
+                    ratings_A = await load_team_ratings(timeA, curr=cur)
+                    ratings_B = await load_team_ratings(timeB, curr=cur)
+
+                    match_maps = mapas[match["id"]]
+
+                    rating_updt = []
+
+                    qnt_mapas = len(match_maps)
+
+                    for m_id in match_maps:
+                        m_venc = match_maps[m_id]["win"]
+
+                        rounds = match_maps[m_id]["rounds"]
+
+                        rounds_a = rounds.count("A")
+                        rounds_b = rounds.count("B")
+
+                        rate_A = ratings_A.get(m_id, {"rating": 1000})
+                        rate_B = ratings_B.get(m_id, {"rating": 1000})
+
+                        if m_venc == "A":
+                            venc = timeA
+                            perd = timeB
+
+                            R_winner = rate_A["rating"]
+                            R_loser = rate_B["rating"]
+                            rnd_winner = rounds_a
+                            rnd_loser = rounds_b
+                        else:
+                            venc = timeB
+                            perd = timeA
+
+                            R_winner = rate_B["rating"]
+                            R_loser = rate_A["rating"]
+                            rnd_winner = rounds_b
+                            rnd_loser = rounds_a
+                        
+
+                        rnd_diff = (rnd_winner-rnd_loser)
+                        if rnd_diff < 5: # 0 -> 4 = 1.0x
+                            rnd_mult = 1
+                        elif rnd_diff < 11: # 5 -> 10 = 1.1x -> 1.3x
+                            rnd_mult = 1 + (ceil((rnd_diff - 4)/2) * 0.1)
+                        else: # 11 -> 13 = 1.5x
+                            rnd_mult = 1.5
+
+                        base_delta = max(5, 20 + 0.1 * (R_loser - R_winner))
+                        delta = round(base_delta * rnd_mult)
+
+                        if m_venc == "A":
+                            ratings_A[m_id] = {"rating": (rate_A["rating"] +delta)}
+                            ratings_B[m_id] = {"rating": (rate_B["rating"] -delta)}
+                        else:
+                            ratings_A[m_id] = {"rating": (rate_A["rating"] -delta)}
+                            ratings_B[m_id] = {"rating": (rate_B["rating"] +delta)}
+
+                        rating_updt.append((venc, m_id, R_winner+delta))
+                        rating_updt.append((perd, m_id, R_loser-delta))
+
+                    # General team Rating
+                    rate_A = ratings_A.get(0, {"rating": 1000, "pickpoints": 0})
+                    rate_B = ratings_B.get(0, {"rating": 1000, "pickpoints": 0})
+
+                    if vencedor == "A":
+                        venc = timeA
+                        perd = timeB
+
+                        R_winner = rate_A["rating"]
+                        R_loser = rate_B["rating"]
+                    else:
+                        venc = timeB
+                        perd = timeA
+
+                        R_winner = rate_B["rating"]
+                        R_loser = rate_A["rating"]
+
+                    if md5:
+                        if qnt_mapas >= 5:      # 3x2
+                            match_mult = 1.2
+                        elif qnt_mapas == 4:    # 3x1
+                            match_mult = 1.35
+                        else:                   # 3x0
+                            match_mult = 1.5
+                    else:
+                        match_mult = 1.2 if (qnt_mapas == 3) else 1.5 # 2x1 vs 2x0
+
+                    base_delta = max(5, 20 + 0.1 * (R_loser - R_winner))
+                    delta = round(base_delta * match_mult)
+
+                    if m_venc == "A":
+                        ratings_A[0] = {"rating": (rate_A["rating"] +delta)}
+                        ratings_B[0] = {"rating": (rate_B["rating"] -delta)}
+                    else:
+                        ratings_A[0] = {"rating": (rate_A["rating"] -delta)}
+                        ratings_B[0] = {"rating": (rate_B["rating"] +delta)}
+
+                    rating_updt.append((venc, 0, R_winner+delta))
+                    rating_updt.append((perd, 0, R_loser-delta))
+
+                    for updt in pickpts_updt:
+                        await cur.execute("""
+                            INSERT INTO team_ratings (team_id, map_id, pickpoints)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (team_id, map_id)
+                            DO UPDATE SET
+                                pickpoints = team_ratings.pickpoints + EXCLUDED.pickpoints
+                        """, updt)
+
+                    for updt in rating_updt:
+                        await cur.execute("""
+                            INSERT INTO team_ratings (team_id, map_id, rating)
+                            VALUES (%s, %s, %s)
+                            ON CONFLICT (team_id, map_id)
+                            DO UPDATE SET
+                                rating = EXCLUDED.rating
+                        """, updt)
+
+                await cur.execute("""
+                    UPDATE partidas
+                    SET rated = TRUE
+                    WHERE id = ANY(%s);
+                """, (unrated_matches,))
+
+        return
+
     async def get_value(self, var):
         if var == "times":
             return self.times
@@ -378,11 +769,14 @@ async def perform_global_reload(brain : Brain):
                 _maps = await load_id_maps(cur)
                 _agents = await load_id_agents(cur)
                 _comps = await load_id_comps(cur)
-                _camps = await load_id_camps(cur)
-                _partidas = await load_id_partidas(cur, _camps)
+                _camps, unrated_camps = await load_id_camps(cur)
+                _partidas, unrated_matches, unrated_campMatches = await load_id_partidas(cur, _camps, unrated_camps)
                 _mapas_jogados = await load_id_mapas_jogados(cur, _maps, _comps)
         
         brain.update_data((_times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados))
+
+        await brain.rate_matches(unrated_matches)
+        await brain.rate_camp(unrated_campMatches, unrated_camps)
         return 1
     
     except Exception as e:
@@ -402,8 +796,8 @@ async def site_data_reload():
                 _maps = await load_id_maps(cur)
                 _agents = await load_id_agents(cur)
                 _comps = await load_id_comps(cur)
-                _camps = await load_id_camps(cur)
-                _partidas = await load_id_partidas(cur, _camps)
+                _camps, unrated_camps = await load_id_camps(cur)
+                _partidas, unrated_matches, unrated_campMatches = await load_id_partidas(cur, _camps)
                 _mapas_jogados = await load_id_mapas_jogados(cur, _maps, _comps)
         
         return (_times, _maps, _agents, _comps, _camps, _partidas, _mapas_jogados)
