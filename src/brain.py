@@ -52,7 +52,7 @@ async def load_id_camps(cur):
 
     return camps, toRate_camps
 
-async def load_id_partidas(cur, camps_dict, unrated_camps):
+async def load_id_partidas(cur, camps_dict, unrated_camps=[]):
     await cur.execute("SELECT id, camp_id, timea_id, timeb_id, vencedor_time_letra, pickban_log, rated, seq_num FROM partidas ORDER BY seq_num DESC")
     rows = await cur.fetchall()
     partidas_cache = []
