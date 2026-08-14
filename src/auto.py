@@ -75,7 +75,7 @@ def register_team(navegador, register_link, times, cur):
     name = " ".join(info[:-1]).lower()
     tag = info[-1].upper()
 
-    if not times.get(name):
+    if not times.get(name):        
         img = navegador.find_element(By.CLASS_NAME, 'team-header-logo').find_element(By.TAG_NAME, 'img').get_attribute("src")
 
         team_data = {
@@ -85,13 +85,15 @@ def register_team(navegador, register_link, times, cur):
             'emoji': '<:vlr:1534078145177583636>',
             'img_url': img
         }
+        
         cur.execute("""
             INSERT INTO times (nome, tag, regiao, emoji, img_url)
             VALUES (%(nome)s, %(tag)s, %(regiao)s, %(emoji)s, %(img_url)s)
+            ON CONFLICT (tag) DO UPDATE 
+            SET nome = EXCLUDED.nome,
+                img_url = EXCLUDED.img_url
             RETURNING id;
-            """, 
-            team_data
-        )
+        """, team_data)
 
     return name, tag
     
