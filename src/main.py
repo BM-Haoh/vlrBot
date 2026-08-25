@@ -120,6 +120,7 @@ async def auto_reload_cache():
                                             COMANDO            #1
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time")
+
 async def auxilio(interaction: discord.Interaction):
     '''
     command that lists the tags of the teams for search, separated by region, and with the respective emojis.
@@ -154,10 +155,34 @@ async def auxilio(interaction: discord.Interaction):
     answer.add_field(name=f"**__{pre_region}__**", value=temp_answer, inline=True) # ultima região
 
     await interaction.edit_original_response(embed=answer)
+async def team_query_autocomplete(
+        interaction: discord.Interaction,
+        current: str
+) -> list[app_commands.Choice[str]]:
+    opcoes = [] # tags
+    opcoes2 = [] # nomes
+    for time in logic.times:
+        tag, nome = time["tag"], time["nome"]
+        opcoes2.append((tag, tag))
+        if tag != nome:
+            opcoes2.append((nome, tag))
+    opcoes.extend(opcoes2) # tags na frente de nomes
+    opcoes_filtradas = [
+        opcao for opcao in opcoes
+        if current.lower() in opcao[0].lower()
+    ][:15]
+    return [
+        app_commands.Choice(name=nome, value=str(valor))
+        for nome, valor in opcoes_filtradas
+    ]
 '''
                                             COMANDO            #2
 '''
 @bot.tree.command(name="info_time", description="Informação sobre um time")
+@app_commands.describe(
+    team_query="Nome/Tag do time que deseja ver as informações sobre.",
+)
+@app_commands.autocomplete(team_query=team_query_autocomplete)
 async def info_time(interaction: discord.Interaction, time_query: str):
     '''
     command that provides information about a team.
@@ -435,7 +460,12 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 '''
                                             COMANDO            #3
 '''
-@bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando pode demorar um pouco)")
+@bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando costuma demorar um pouco.)")
+@app_commands.describe(
+    team_query_1="Nome/Tag do time que você deseja ver as informações sobre.",
+    team_query_2="Nome/Tag do time que você deseja comparar com o primeiro."
+)
+@app_commands.autocomplete(team_query_1=team_query_autocomplete, team_query_2=team_query_autocomplete)
 async def times_vs(interaction: discord.Interaction, time_query_1: str, time_query_2: str):
     '''
     command that provides information about a team.
@@ -1030,7 +1060,7 @@ async def condition_autocomplete(
         for nome, valor in opcoes_filtradas
     ]
 
-@bot.tree.command(name="leaderboard", description="Diferente tabelas de ratings dos times", guild=GUILD_ID_INFO)
+@bot.tree.command(name="leaderboard", description="Diferente tabelas de ratings dos times")
 @app_commands.describe(
     map_query="Nome do mapa desejado. Deixe em brano para o Ranking Geral.",
     condition="Digite a TAG/nome de um time (para incluí-lo) OU o nome da Região (ex: Americas, EMEA...)."
