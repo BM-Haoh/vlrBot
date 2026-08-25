@@ -180,9 +180,9 @@ async def team_query_autocomplete(
 '''
 @bot.tree.command(name="info_time", description="Informação sobre um time")
 @app_commands.describe(
-    team_query="Nome/Tag do time que deseja ver as informações sobre.",
+    time_query="Nome/Tag do time que deseja ver as informações sobre.",
 )
-@app_commands.autocomplete(team_query=team_query_autocomplete)
+@app_commands.autocomplete(time_query=team_query_autocomplete)
 async def info_time(interaction: discord.Interaction, time_query: str):
     '''
     command that provides information about a team.
@@ -462,10 +462,10 @@ async def info_time(interaction: discord.Interaction, time_query: str):
 '''
 @bot.tree.command(name="times_vs", description="Comparações diretas entre dois times (Este comando costuma demorar um pouco.)")
 @app_commands.describe(
-    team_query_1="Nome/Tag do time que você deseja ver as informações sobre.",
-    team_query_2="Nome/Tag do time que você deseja comparar com o primeiro."
+    time_query_1="Nome/Tag do time que você deseja ver as informações sobre.",
+    time_query_2="Nome/Tag do time que você deseja comparar com o primeiro."
 )
-@app_commands.autocomplete(team_query_1=team_query_autocomplete, team_query_2=team_query_autocomplete)
+@app_commands.autocomplete(time_query_1=team_query_autocomplete, time_query_2=team_query_autocomplete)
 async def times_vs(interaction: discord.Interaction, time_query_1: str, time_query_2: str):
     '''
     command that provides information about a team.
