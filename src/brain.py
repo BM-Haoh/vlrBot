@@ -1,6 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from math import ceil
 import pandas as pd
+import numpy as np
 import asyncio
 import psycopg
 import json
@@ -24,7 +25,7 @@ async def load_id_times(cur):
 async def load_id_maps(cur):
     await cur.execute("SELECT id, nome, in_pool FROM mapas_lista")
     rows = await cur.fetchall()
-    return {int(id): {"nome": nome, "in_pool": in_pool} for id, nome, in_pool in rows}
+    return {int(id): {"id": id, "nome": nome, "in_pool": in_pool} for id, nome, in_pool in rows}
         
 async def load_id_agents(cur):
     await cur.execute("SELECT id, nome, emoji_discord FROM agentes")
@@ -125,20 +126,25 @@ async def load_team_table(id_time):
 
     return stats_table
 
-async def load_player_map_stats(id_time):
+async def load_player_map_stats(id_time, pool):
     async with await get_conn() as conn:
         async with conn.cursor() as cur:
             await cur.execute("""
-                SELECT team_id, match_id, map_id, rating, acs, adr, kast, hs, kd, kda, fk, fd
-                FROM players_map_stats 
-                WHERE team_id = %s 
-                ORDER by match_id DESC
+                SELECT 
+                    pms.player_id, pms.team_id, pms.match_id, pms.map_id, pms.rating, 
+                    pms.acs, pms.adr, pms.kast, pms.hs, pms.kd, pms.kda, pms.fk, pms.fd,
+                    p.seq_num
+                FROM players_map_stats pms
+                JOIN partidas p on p.id = pms.match_id
+                WHERE pms.team_id = %s
+                AND pms.map_id = ANY(%s)
+                ORDER by p.seq_num DESC
                 """, 
-                (id_time, )
+                (id_time, pool)
             )
             stats_players = await cur.fetchall()
 
-    colunas = ["Team", "Match", "Map", "Rating", "ACS", "ADR", "KAST", "HS", "KD", "KDA", "FK", "FD"]
+    colunas = ["Player", "Team", "Match", "Map", "Rating", "ACS", "ADR", "KAST", "HS", "KD", "KDA", "FK", "FD", "seq_num"]
 
     stats_table = pd.DataFrame(stats_players, columns=colunas)
 
@@ -151,29 +157,144 @@ async def load_team_ratings(id_time, curr=None):
         async with await get_conn() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
-                    SELECT team_id, map_id, rating, pickpoints
-                    FROM team_ratings
-                    WHERE team_id = %s 
-                    ORDER by map_id DESC
+                    WITH ranked_ratings AS (
+                        SELECT 
+                            team_id,
+                            map_id,
+                            rating,
+                            pickpoints,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY map_id 
+                                ORDER BY rating DESC
+                            ) AS rank_pos
+                        FROM team_ratings
+                    )
+                    SELECT 
+                        team_id, 
+                        map_id, 
+                        rating, 
+                        pickpoints, 
+                        rank_pos
+                    FROM ranked_ratings
+                    WHERE team_id = %s
+                    ORDER BY map_id DESC;
                     """, (id_time, )
                 )
                 T_ratings = await cur.fetchall()
     else:
         await curr.execute("""
-            SELECT team_id, map_id, rating, pickpoints
-            FROM team_ratings
-            WHERE team_id = %s 
-            ORDER by map_id DESC
+            WITH ranked_ratings AS (
+                SELECT 
+                    team_id,
+                    map_id,
+                    rating,
+                    pickpoints,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY map_id 
+                        ORDER BY rating DESC
+                    ) AS rank_pos
+                FROM team_ratings
+            )
+            SELECT 
+                team_id, 
+                map_id, 
+                rating, 
+                pickpoints, 
+                rank_pos
+            FROM ranked_ratings
+            WHERE team_id = %s
+            ORDER BY map_id DESC;
             """, (id_time, )
         )
         T_ratings = await curr.fetchall()
 
-    Ratings = {map_id: {"rating": rating, "pickpoints": pickpoints} for t_id, map_id, rating, pickpoints in T_ratings}
+    Ratings = {map_id: {"rating": rating, "pickpoints": pickpoints, "pos": rank_pos} for t_id, map_id, rating, pickpoints, rank_pos in T_ratings}
 
     return Ratings
 
+async def load_leaderboard(map_id, condition):
+    if condition is None:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    WITH ranked_leaderboard AS (
+                        SELECT 
+                            t.tag,
+                            t.nome,
+                            t.emoji,
+                            t.regiao,
+                            tr.rating,
+                            ROW_NUMBER() OVER (ORDER BY tr.rating DESC) AS posicao
+                        FROM team_ratings tr
+                        JOIN times t on t.id = tr.team_id
+                        WHERE tr.map_id = %s
+                    )
+                    SELECT posicao, tag, nome, emoji, regiao, rating
+                    FROM ranked_leaderboard
+                    WHERE posicao <= 10
+                    ORDER BY posicao ASC;
+                    """, 
+                    (map_id, )
+                )
+
+                leaderboard = await cur.fetchall()
+    elif condition in ["Americas", "China", "EMEA", "Pacific"]:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    WITH ranked_leaderboard AS (
+                        SELECT 
+                            t.tag,
+                            t.nome,
+                            t.emoji,
+                            t.regiao,
+                            tr.rating,
+                            ROW_NUMBER() OVER (ORDER BY tr.rating DESC) AS posicao
+                        FROM team_ratings tr
+                        JOIN times t on t.id = tr.team_id
+                        WHERE tr.map_id = %s
+                    )
+                    SELECT posicao, tag, nome, emoji, regiao, rating
+                    FROM ranked_leaderboard
+                    WHERE LOWER(regiao) = LOWER(%s)
+                    ORDER BY posicao ASC;
+                    """, 
+                    (map_id, condition)
+                )
+                leaderboard = await cur.fetchall()
+    else:
+        async with await get_conn() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    WITH ranked_leaderboard AS (
+                        SELECT
+                            t.id AS team_id,
+                            t.tag,
+                            t.nome,
+                            t.emoji,
+                            t.regiao,
+                            tr.rating,
+                            ROW_NUMBER() OVER (ORDER BY tr.rating DESC) AS posicao
+                        FROM team_ratings tr
+                        JOIN times t on t.id = tr.team_id
+                        WHERE tr.map_id = %s
+                    )
+                    SELECT posicao, tag, nome, emoji, regiao, rating
+                    FROM ranked_leaderboard
+                    WHERE posicao <= 10
+                        OR team_id = %s
+                    ORDER BY posicao ASC;
+                    """, 
+                    (map_id, condition)
+                )
+                leaderboard = await cur.fetchall()
+
+    LB = [{"posicao": posicao, "tag": tag, "nome": nome, "emoji": emoji, "regiao": regiao, "rating": rating} for posicao, tag, nome, emoji, regiao, rating in leaderboard]
+
+    return LB
+
 def rodar_sync(coroutine):
-    """Transforma uma coroutine async em um resultado síncrono imediatamente"""
+    """Transform async corroutine in a sync function"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     values = loop.run_until_complete(coroutine)
@@ -190,6 +311,9 @@ class Brain:
         self.partidas = partidas
         self.mapas_jogados = mapas_jogados
         self.players = {}
+        self.team_ratings = {}
+        self.map_stats = {}
+        self.leaderboard = {}
 
     def update_data(self, cache):
         self.times = cache[0]           # times
@@ -201,7 +325,7 @@ class Brain:
         self.mapas_jogados = cache[6]   # mapas_jogados
         self.players = {}
 
-    async def info_time(self, time_tag, preTable=None):
+    async def info_time(self, time_tag, preTable=None, preRating=None, preTeamStats=None):
         # If the times list is empty, we return a specific error code (1)
         if not self.times:
             return 1
@@ -272,6 +396,7 @@ class Brain:
 
             #       Embed2          - Creating the description for the embed with the maps in the pool, with win rates for each map and composition of the team
             pool = [{"id": mapa, "nome": self.maps[mapa]["nome"]} for mapa in self.maps if self.maps[mapa]["in_pool"]]
+            pool_ids = [map["id"] for map in pool]
             
             team_maps = {
                 m_id: {
@@ -283,6 +408,9 @@ class Brain:
                         "atk_": [0, 0],
                         "def_": [0, 0],
                         "map_": [0, 0],
+                        "pistol": [0, 0],
+                        "post_W_pistol": [0, 0],
+                        "post_L_pistol": [0, 0],
                         "played": 0
                     },
                     "comp_played": []
@@ -329,10 +457,38 @@ class Brain:
                             else:
                                 otDEF += 1
 
+                # Calculating pistol related information
+                # pistol, post win pistol, post lose pistol
+                pistol, pWp, pLp = 0, 0, 0
+                # count post wins, count post lose
+                count_pW, count_pL = 0, 0
+
+                if half1[0] == ab:
+                    pistol += 1
+                    count_pW += 1
+                    if half1[1] == ab: 
+                        pWp += 1
+                else:
+                    count_pL += 1
+                    if half1[1] == ab:
+                        pLp += 1
+                if half2[0] == ab:
+                    pistol += 1
+                    if len(half2) != 1:
+                        count_pW += 1
+                        if half2[1] == ab:
+                            pWp += 1
+                else:
+                    if len(half2) != 1:
+                        count_pL += 1
+                        if half2[1] == ab:
+                            pLp += 1
+                        
                 # String mentioned before, with format X_Y_Z_W, where each letter is a number
                     # more information above
                 if starts == "atk":
                     atk_def = f"{half1.count(ab) + otATK}_{half2.count(ab) + otDEF}_{len(half1) + len(ot)//2}_{len(half2) + len(ot)//2}"
+
                 else:
                     atk_def = f"{half2.count(ab) + otATK}_{half1.count(ab) + otDEF}_{len(half2) + len(ot)//2}_{len(half1) + len(ot)//2}"
 
@@ -349,7 +505,6 @@ class Brain:
                     target["Win/game"].append(win_val)
                     target["comp_played"].append(1)
                     target["info"]["played"] += 1
-
                 
                 else:
                     index = target["comps"].index(comp_val)
@@ -363,13 +518,22 @@ class Brain:
                     v, g = [int(x) for x in target["Win/game"][index].split("/")]
                     v += 1 if mapa.get("win") == ab else 0
                     target["Win/game"][index] = f"{v}/{g+1}"
-                    target["info"]["played"] += 1
                     target["comp_played"][index] += 1
+                    target["info"]["played"] += 1
+
+                # Pistol related
+                target["info"]["pistol"][0] += pistol
+                target["info"]["post_W_pistol"][0] += pWp
+                target["info"]["post_L_pistol"][0] += pLp
+
+                target["info"]["pistol"][1] += 2
+                target["info"]["post_W_pistol"][1] += count_pW
+                target["info"]["post_L_pistol"][1] += count_pL
 
             # Putting descriptions together for each map in the pool, with the compositions used by the team and their respective stats
             time_mapas = []
-            for map in pool:
-                time_mapas.append(team_maps[map["id"]])
+            for map in pool_ids:
+                time_mapas.append(team_maps[map])
             for mapa in time_mapas:
                 descricaoMapa = ""
 
@@ -401,13 +565,29 @@ class Brain:
                 if preTable is not None and preTable is not pd.DataFrame.empty:
                     stats_table = preTable
                 else:
-                    stats_table = await load_team_table(time["id"])
+                    stats_table = await load_team_table(time_id)
 
                 self.players[time_id] = stats_table
-            
+
+            if self.team_ratings.get(time_id) is None:
+                if preRating is not None:
+                    ratings = preRating
+                else:
+                    ratings = await load_team_ratings(time_id)
+
+                self.team_ratings[time_id] = ratings
+
+            if self.map_stats.get(time_id) is None:
+                if preTeamStats is not None and preTeamStats is not pd.DataFrame.empty:
+                    map_stats = preTeamStats
+                else:
+                    map_stats = await load_player_map_stats(time_id, pool_ids)
+
+                self.map_stats[time_id] = map_stats
+
             # if we already have the stats of this team in RAM, we just use them without querying the database again
 
-            agg_rules = {
+            agg_rules_table = {
                 "Rating": "mean",
                 "ACS": "mean",
                 "KD": "mean",
@@ -421,9 +601,46 @@ class Brain:
                 "CLp": "sum"
             }
 
-            df_time = self.players[time_id].groupby("Camp").agg(agg_rules).reset_index()
+            df_time = self.players[time_id].groupby("Camp").agg(agg_rules_table).reset_index()
 
-            return time, matches_descript, time_mapas, df_time
+            # Using weighted_mean to have more accurate stats for each map:
+            LAMBDA = 0.1 # how match past loses weight
+            Stats_cols = ["Rating", "ACS", "ADR", "KAST", "HS", "KD", "KDA", "FK", "FD"]
+
+            df_temp = self.map_stats[time_id].sort_values(by=["Map", "seq_num"], ascending=True)
+
+            df_temp["games_ago"] = (
+                df_temp.groupby("Map")["seq_num"]
+                       .rank(method="dense", ascending=False) - 1
+            )
+
+            df_temp["weight"] = np.exp(-LAMBDA * df_temp["games_ago"])
+
+            for col in Stats_cols:
+                df_temp[col] = pd.to_numeric(df_temp[col], errors="coerce").fillna(0.0)
+
+            weighted_df = df_temp[Stats_cols].multiply(df_temp["weight"], axis=0)
+
+            weighted_df["Map"] = df_temp["Map"]
+            weighted_df["weight"] = df_temp["weight"]
+
+            grouped = weighted_df.groupby("Map").sum()
+
+
+            df_maps = grouped[Stats_cols].divide(grouped["weight"], axis=0).reset_index()
+
+            return time, matches_descript, time_mapas, df_time, df_maps, self.team_ratings[time_id]
+
+    async def get_leaderboard(self, map, condition, preLB=None):
+        if self.leaderboard.get((map, condition)) is None:
+            if preLB is not None:
+                lb = preLB
+            else:
+                lb = await load_leaderboard(map, condition)
+
+            self.leaderboard[(map, condition)] = lb
+
+        return self.leaderboard[(map, condition)]
 
     async def rate_camp(self, unrated_campMatches, unrated_camps):
         if not unrated_campMatches:
@@ -808,26 +1025,26 @@ async def site_data_reload():
     
 def discover_reload_site():
     """
-    Gera uma string única para o bloco de tempo atual.
-    A string muda rigorosamente às 07:30 UTC e às 19:30 UTC.
+    Generate a unique string for the current timestamp.
+    String changes as 7:30 UTC and 19:30 UTC.
     """
     agora = datetime.now(timezone.utc)
     
     reset_1 = agora.replace(hour=7, minute=30, second=0, microsecond=0)
     reset_2 = agora.replace(hour=19, minute=30, second=0, microsecond=0)
     
-    # Descobre quando começou a janela atual
+    # Discovers the current time window
     if agora < reset_1:
-        # Madrugada: a janela atual começou às 19:30 do dia anterior
+        # Early morning: curent window started 19:30 UTC of yesterday.
         janela_origem = reset_2 - timedelta(days=1)
     elif agora < reset_2:
-        # Manhã/Tarde: a janela atual começou às 07:30 de hoje
+        # Morning/Afternoon: current window started 7:30 UTC of today
         janela_origem = reset_1
     else:
-        # Noite: a janela atual começou às 19:30 de hoje
+        # Night:curent window started 19:30 UTC of today.
         janela_origem = reset_2
         
-    # Retorna uma string como "vlr_window_2026-07-02_07:30"
+    # Example of the string returned: "vlr_window_2026-07-02_07:30"
     return f"vlr_window_{janela_origem.strftime('%Y-%m-%d_%H:%M')}"
 
 if __name__ == "__main__":

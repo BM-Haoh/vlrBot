@@ -1,6 +1,7 @@
 # Análise de Dados
 pandas
 plotly
+numpy
 
 # Integração com Discord
 discord.py

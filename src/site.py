@@ -46,7 +46,11 @@ if dados_brutos:
     pg = st.navigation(
         {
             "Help": [st.Page(pgs.help, title="Ajuda")],
-            "Comandos": [st.Page(pgs.info_time, title="Informação de Time"), st.Page(pgs.vs, title="Time Vs. Time")],
+            "Comandos": [
+                st.Page(pgs.info_time, title="Informação de Time"), 
+                st.Page(pgs.vs, title="Time Vs. Time"),
+                st.Page(pgs.leaderboard, title="Leaderboard")
+            ],
         }
     )
 

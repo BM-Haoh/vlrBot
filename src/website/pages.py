@@ -1,5 +1,5 @@
+from website.data_loader import load_team_table, load_team_ratings, load_player_map_stats, load_leaderboard
 from brain import rodar_sync, discover_reload_site
-from website.data_loader import load_team_table
 import plotly.express as px
 import streamlit as st
 import pandas as pd
@@ -75,6 +75,9 @@ class Pages():
         opt_aux = {time["tag"].lower(): time["img_url"] for time in opções}
         opções = {time["tag"]: time["id"] for time in opções}
 
+        mapas = rodar_sync(self.logic.get_value("maps"))
+        pool = [mapa["id"] for key, mapa in mapas.items() if mapa["in_pool"]]
+
         col_logo, col_titulo, disc = st.columns([1, 5, 1])
 
         with col_logo:
@@ -130,9 +133,11 @@ class Pages():
             st.subheader("Parametros")
             nome_dado = st.selectbox("Selecione o time a ser exibido", options=opções.keys(), index=None, placeholder="Selecione um time")
             stats_table = load_team_table(opções.get(nome_dado), discover_reload_site())
+            team_ratings = load_team_ratings(opções.get(nome_dado), discover_reload_site())
+            map_stats = load_player_map_stats(opções.get(nome_dado), pool, discover_reload_site())
             if nome_dado is not None:
 
-                dado = rodar_sync(self.logic.info_time(nome_dado, preTable=stats_table))
+                dado = rodar_sync(self.logic.info_time(nome_dado, preTable=stats_table, preRating=team_ratings, preTeamStats=map_stats))
 
             pagina = st.selectbox("Selecione a página a ser exibida", options=["Overview", "Maps"], index=0, placeholder="Selecione uma página")
 
@@ -149,12 +154,22 @@ class Pages():
                 st.markdown("<h2 style='text-align: center;'>Visualização</h2>", unsafe_allow_html=True)
             
             if executar:
-                time, matches_decript, time_mapas, time_stats = dado
+                time, matches_decript, time_mapas, time_stats, time_map_stats, time_ratings  = dado
 
                 paginas_lista = []
 
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
+                # Descricao Geral:
+                trophies = "\n"
+                Trophies = ""
+                count = 0
+                for camp in self.logic.camps.keys():
+                    if self.logic.camps[camp].get("winner") is not None:
+                        if self.logic.camps[camp]["winner"] == time["id"]:
+                            count += 1
+                            Trophies += f"<h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; padding: 0;'>🏆 {self.logic.camps[camp]['nome']}</h5>"
 
+                Trophies = Trophies if count else trophies
+        
                 # Stats do Embed 1
                 colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
                 idx_mais_recente = time_stats["Camp"].idxmax()
@@ -163,6 +178,18 @@ class Pages():
                 Atk_geral = [0, 0] # [vitórias, total]
                 Def_geral = [0, 0] # [vitórias, total]
                 Map_geral = [0, 0] # [vitórias, total]
+                
+                pistol_geral  = [0, 0]
+                pWp_geral     = [0, 0]
+                pLp_geral     = [0, 0]
+
+                rating_geral = time_ratings.get(0)
+                str_rating_geral = str(rating_geral.get('rating'))
+                rating_pos_geral = rating_geral.get("pos")
+
+                top_spots = ["0", "🥇", "🥈", "🥉"]
+
+                leadearboard_pos_geral = top_spots[rating_pos_geral] if rating_pos_geral < 4 else f"{rating_pos_geral}º"
 
                 win = "\u2588\u200a"
                 lose = "\u2591\u200a"
@@ -180,22 +207,44 @@ class Pages():
                     Map_geral[0] += mapa['info']['map_'][0]
                     Map_geral[1] += mapa['info']['map_'][1]
 
+                    pistol_geral[0] += mapa['info']["pistol"][0]
+                    pistol_geral[1] += mapa['info']["pistol"][1]
+                    pWp_geral[0]    += mapa['info']["post_W_pistol"][0]
+                    pWp_geral[1]    += mapa['info']["post_W_pistol"][1]
+                    pLp_geral[0]    += mapa['info']["post_L_pistol"][0]
+                    pLp_geral[1]    += mapa['info']["post_L_pistol"][1]
+
+
                     mapa_jogado = mapa["info"]["played"]
                     Atk = mapa['info']['atk_'][0] / mapa['info']['atk_'][1] if mapa['info']['atk_'][1] > 0 else 0
                     Def = mapa['info']['def_'][0] / mapa['info']['def_'][1] if mapa['info']['def_'][1] > 0 else 0
                     Map = mapa['info']['map_'][0] / mapa['info']['map_'][1] if mapa['info']['map_'][1] > 0 else 0
-                    Atk_emoji = win * int(Atk * 10) + lose * (10 - int(Atk * 10))
-                    Def_emoji = win * int(Def * 10) + lose * (10 - int(Def * 10))
-                    Map_emoji = win * int(Map * 10) + lose * (10 - int(Map * 10))
 
+                    pistol = mapa['info']["pistol"][0] / mapa['info']["pistol"][1] if mapa['info']["pistol"][1] > 0 else 0
+                    pWp    = mapa['info']["post_W_pistol"][0] / mapa['info']["post_W_pistol"][1] if mapa['info']["post_W_pistol"][1] > 0 else 0
+                    pLp    = mapa['info']["post_L_pistol"][0] / mapa['info']["post_L_pistol"][1] if mapa['info']["post_L_pistol"][1] > 0 else 0
+
+                    # Descrição - MAPAS
+                    rating = time_ratings.get(mapa["id"])
+                    str_rating = str(rating_geral.get('rating'))
+                    rating_pos = rating.get("pos")
+
+                    leadearboard_pos = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+        
                     Mapa = {
                         "nome": f"{mapa['nome']}",
+                        "rating": str_rating,
+                        "leaderboard": leadearboard_pos,
                         "description": {
                             "jogado": mapa_jogado,
                             "atk": Atk,
                             "def": Def,
-                            "map": Map
+                            "map": Map,
+                            "pistol": pistol,
+                            "pWp": pWp,
+                            "pLp": pLp
                         },
+                        "stats": time_map_stats[time_map_stats["Map"] == mapa["id"]],
                         "composicoes": []
                     }
 
@@ -240,8 +289,13 @@ class Pages():
                                 <h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; margin-top: 5px;'>
                                     🌍 {time['regiao']}'s franchise team
                                 </h5>
+                                <h5 style='text-align: center; margin: 0; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                    {leadearboard_pos_geral}: {str_rating_geral} de rating
+                                </h5>
+                                {Trophies}
                             </div>
                             """, 
+
                             unsafe_allow_html=True
                         )
                     
@@ -254,6 +308,13 @@ class Pages():
                     Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
                     Map_ = Map_geral[0]/Map_geral[1] if Map_geral[1] > 0 else 0
                     Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+
+                    pistol_ = pistol_geral[0]/pistol_geral[1] if pistol_geral[1] > 0 else 0
+                    pistol_emoji = win * int(pistol_ * 10) + lose * (10 - int(pistol_ * 10))
+                    pWp_ = pWp_geral[0]/pWp_geral[1] if pWp_geral[1] > 0 else 0
+                    pWp_emoji = win * int(pWp_ * 10) + lose * (10 - int(pWp_ * 10))
+                    pLp_ = pLp_geral[0]/pLp_geral[1] if pLp_geral[1] > 0 else 0
+                    pLp_emoji = win * int(pLp_ * 10) + lose * (10 - int(pLp_ * 10))      
                     
                     col1, col2, col3= st.columns([1, 1, 1])
                     with col1:
@@ -306,6 +367,18 @@ class Pages():
                     with col4:
                         st.write(f"Winrate Geral: ({Map_ * 100:.0f}%)")
                         st.write(f"#### {Map_emoji}")
+
+                    _, col2, col3, col4 = st.columns([1, 1, 1, 1])
+
+                    with col2:
+                        st.write(f"Winrate Pistol: ({pistol_ * 100:.0f}%)")
+                        st.write(f"#### {pistol_emoji}")
+                    with col3:
+                        st.write(f"Winrate PostWin Pistol: ({pWp_ * 100:.0f}%)")
+                        st.write(f"#### {pWp_emoji}")
+                    with col4:
+                        st.write(f"Winrate PostLoss Pistol: ({pLp_ * 100:.0f}%)")
+                        st.write(f"#### {pLp_emoji}")
 
                     st.divider()
 
@@ -393,6 +466,10 @@ class Pages():
                                     <h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; margin-top: 5px;'>
                                         🌍 {time['regiao']}'s franchise team
                                     </h5>
+                                    <h5 style='text-align: center; margin: 0; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {leadearboard_pos_geral}: {str_rating_geral} de rating
+                                    </h5>
+                                    {Trophies}
                                 </div>
                                 """, 
                                 unsafe_allow_html=True
@@ -401,22 +478,54 @@ class Pages():
                         st.divider()
                         map_df = pd.DataFrame([{"Mapa": mapa["nome"], "Winrate": mapa["description"]["map"], "jogado": mapa["description"]["jogado"]} for mapa in paginas_lista])
                         AtkDef_df = pd.DataFrame([{"Mapa": mapa["nome"], "W% Ataque": mapa["description"]["atk"], "W% Defesa": mapa["description"]["def"], "jogado": mapa["description"]["jogado"]} for mapa in paginas_lista])
+                        pistol_df = pd.DataFrame([{"Mapa": mapa["nome"], "pistol": mapa["description"]["pistol"], "pWp": mapa["description"]["pWp"], "pLp": mapa["description"]["pLp"], "jogado": mapa["description"]["jogado"]} for mapa in paginas_lista])
+                        ratings_df = pd.DataFrame([{"Mapa": mapa["nome"], "rating": mapa["rating"], "jogado": mapa["description"]["jogado"]} for mapa in paginas_lista])
+
+                        ratings_df["rating"] = pd.to_numeric(ratings_df["rating"], errors="coerce").fillna(0).astype(int)
+                        ratings_df = ratings_df.sort_values(by="rating", ascending=False)
+
+                        min_rate = int(ratings_df["rating"].min())
+                        max_rate = int(ratings_df["rating"].max())
+
+                        fig = px.bar(
+                            ratings_df,
+                            x="Mapa", 
+                            y="rating", 
+                            labels={"rating": "Rating", "Mapa": "Mapas"}, 
+                            title="Ratings por mapa"
+                        )
+                        for idx, row in ratings_df.iterrows():
+                            fig.add_annotation(
+                                x=row["Mapa"],
+                                y=min_rate-86,
+                                text=f"{row['jogado']}",
+                                showarrow=False,
+                                font=dict(color="#ffffff", size=11, family="Arial"),
+                                bgcolor="rgba(38, 39, 48, 0.95)",   # Fundo escuro sutil para o modo dark do Streamlit
+                                bordercolor="#ff4b4b",            # Borda vermelha de aviso
+                                borderwidth=1,
+                                borderpad=6
+                            )
+                        
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(range=[min_rate-100, max_rate+100])
+                        st.plotly_chart(fig, width='stretch')
 
                         fig = px.bar(
                             map_df, 
                             x="Mapa", 
                             y="Winrate", 
-                            labels={"Winrate": "Porcentagem (%)", "Mapa": "Mapas"}, 
+                            labels={"Winrate": "Porcentagem (%)", "Mapa": "Mapas", "variable": "Métrica"}, 
                             title="Winrate de Mapa"
                         )
-                        for idx, row in AtkDef_df.iterrows():
+                        for idx, row in map_df.iterrows():
                             fig.add_annotation(
                                 x=row["Mapa"],
                                 y=.05,
                                 text=f"{row['jogado']}",
                                 showarrow=False,
                                 font=dict(color="#ffffff", size=11, family="Arial"),
-                                bgcolor="rgba(38, 39, 48, 0.95)", # Fundo escuro sutil para o modo dark do Streamlit
+                                bgcolor="rgba(38, 39, 48, 0.95)",   # Fundo escuro sutil para o modo dark do Streamlit
                                 bordercolor="#ff4b4b",            # Borda vermelha de aviso
                                 borderwidth=1,
                                 borderpad=6
@@ -451,6 +560,41 @@ class Pages():
                         fig.update_yaxes(tickformat=".0%", range=[0, 1])
                         st.plotly_chart(fig, width='stretch')
 
+                        fig = px.bar(
+                            pistol_df,
+                            x="Mapa", 
+                            y=["pistol", "pWp", "pLp"],
+                            title="Winrates de Pistols e pós",
+                            barmode="group",
+                            color_discrete_map={"pistol": "#0e8722", "pWp": "#3b82f6", "pLp": "#ef4444"},
+                            labels={
+                                "pistol": "Winrate de Pistols", 
+                                "pWp": "Winrate de PostWin-Pistols",
+                                "pLp": "Winrate de PostLoss-Pistols", 
+                                "Mapa": "Mapas",
+                                "value": "Porcentagem (%)",
+                                "variable": "Métrica"
+                            }
+                        )
+                        for idx, row in pistol_df.iterrows():
+                            fig.add_annotation(
+                                x=row["Mapa"],
+                                y=.05,
+                                text=f"{row['jogado']}",
+                                showarrow=False,
+                                font=dict(color="#ffffff", size=11, family="Arial"),
+                                bgcolor="rgba(38, 39, 48, 0.95)",   # Fundo escuro sutil para o modo dark do Streamlit
+                                bordercolor="#ff4b4b",            # Borda vermelha de aviso
+                                borderwidth=1,
+                                borderpad=6
+                            )
+                        min = int(ratings_df["rating"].min())
+                        max = int(ratings_df["rating"].max())
+                        
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+                        st.plotly_chart(fig, width='stretch')
+
                     else:
                         for pag in paginas_lista:
                             if pag["nome"] == mapa_selecionado:
@@ -479,12 +623,56 @@ class Pages():
                                     <h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; margin-top: 5px;'>
                                         🌍 {time['regiao']}'s franchise team
                                     </h5>
+                                    <h5 style='text-align: center; margin: 0; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {mapa_view["leaderboard"]}: {mapa_view["rating"]} de rating
+                                    </h5>
+                                    {Trophies}
                                 </div>
                                 """, 
                                 unsafe_allow_html=True
                             )
                         
                         st.divider()
+                        if not mapa_view["stats"].empty:
+                            fk = 0
+                            fd = 0
+                            col1, col2, col3= st.columns([1, 1, 1])
+                            with col1:
+                                for i, (chave, valor) in enumerate(mapa_view["stats"].iloc[0].items()):
+                                    if chave == "Map":
+                                        continue
+                                    if i % 3 == 1:
+                                        if chave in ["KAST", "HS"]:
+                                            st.metric(label=chave, value=f"{valor*100:.2f}%")
+                                        else:
+                                            st.metric(label=chave, value=f"{valor:.2f}")
+                            with col2:
+                                for i, (chave, valor) in enumerate(mapa_view["stats"].iloc[0].items()):
+                                    if chave == "Map":
+                                        continue
+                                    if i % 3 == 2 or chave == "FD":
+                                        if chave in ["KAST", "HS"]:
+                                            st.metric(label=chave, value=f"{valor*100:.2f}%")
+                                        elif chave == "FK":
+                                            fk = valor
+                                        elif chave == "FD":
+                                            fd = valor
+                                            if fk != 0 and fd != 0:
+                                                value = fk / fd
+                                                st.metric(label="FKFD", value=f"{value:.2f}")
+                                        else:
+                                            st.metric(label=chave, value=f"{valor:.2f}")
+                            with col3:
+                                for i, (chave, valor) in enumerate(mapa_view["stats"].iloc[0].items()):
+                                    if chave == "Map":
+                                        continue
+                                    if i % 3 == 0 and chave != "FD":
+                                        if chave in ["KAST", "HS"]:
+                                            st.metric(label=chave, value=f"{valor*100:.2f}%")
+                                        else:
+                                            st.metric(label=chave, value=f"{valor:.2f}")
+                            
+                            st.divider()
                         
                         comps_lista = []
 
@@ -794,6 +982,9 @@ class Pages():
         opt_aux = {time["tag"].lower(): time["img_url"] for time in opções}
         opções = {time["tag"]: time["id"] for time in opções}
 
+        mapas = rodar_sync(self.logic.get_value("maps"))
+        pool = [mapa["id"] for key, mapa in mapas.items() if mapa["in_pool"]]
+
         col_logo, col_titulo, disc = st.columns([1, 5, 1])
 
         with col_logo:
@@ -852,11 +1043,15 @@ class Pages():
                 
                 if nome_times[0] is not None:
                     stats_table = load_team_table(opções.get(nome_times[0]), discover_reload_site())
-                    dado1 = rodar_sync(self.logic.info_time(nome_times[0], preTable=stats_table))
+                    team_ratings1 = load_team_ratings(opções.get(nome_times[0]), discover_reload_site())
+                    map_stats1 = load_player_map_stats(opções.get(nome_times[0]), pool, discover_reload_site())
+                    dado1 = rodar_sync(self.logic.info_time(nome_times[0], preTable=stats_table, preRating=team_ratings1, preTeamStats=map_stats1))
 
                 if nome_times[1] is not None:
                     stats_table = load_team_table(opções.get(nome_times[1]), discover_reload_site())
-                    dado2 = rodar_sync(self.logic.info_time(nome_times[1], preTable=stats_table))
+                    team_ratings2 = load_team_ratings(opções.get(nome_times[1]), discover_reload_site())
+                    map_stats2 = load_player_map_stats(opções.get(nome_times[1]), pool, discover_reload_site())
+                    dado2 = rodar_sync(self.logic.info_time(nome_times[1], preTable=stats_table, preRating=team_ratings2, preTeamStats=map_stats2))
 
             pagina = st.selectbox("Selecione a página a ser exibida", options=["Overview", "Maps"], index=0, placeholder="Selecione uma página")
 
@@ -869,13 +1064,30 @@ class Pages():
         with col_graf:
             st.markdown("<h2 style='text-align: center;'>Visualização</h2>", unsafe_allow_html=True)
             if executar:
-                time1, matches_decript1, time_mapas1, time_stats1 = dado1
-                time2, matches_decript2, time_mapas2, time_stats2 = dado2
+                top_spots = ["0", "🥇", "🥈", "🥉"]
+
+                time1, matches_decript1, time_mapas1, time_stats1, time_map_stats1, time_ratings1 = dado1
+                time2, matches_decript2, time_mapas2, time_stats2, time_map_stats2, time_ratings2 = dado2
 
                 paginas_lista1 = []
                 paginas_lista2 = []
 
-                colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
+                trophies = f"<h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; padding: 0;'></h5>"
+                Trophies1 = ""
+                Trophies2 = ""
+                count1 = 0
+                count2 = 0
+                for camp in self.logic.camps.keys():
+                    if self.logic.camps[camp].get("winner") is not None:
+                        if self.logic.camps[camp]["winner"] == time1["id"]:
+                            count1 += 1
+                            Trophies1 += f"<h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; padding: 0;'>🏆 {self.logic.camps[camp]['nome']}</h5>"
+                        if self.logic.camps[camp]["winner"] == time2["id"]:
+                            count2 += 1
+                            Trophies2 += f"<h5 style='text-align: center; margin: 0; color: #888888; font-weight: normal; padding: 0;'>🏆 {self.logic.camps[camp]['nome']}</h5>"
+
+                Trophies1 = Trophies1 if count1 else trophies
+                Trophies2 = Trophies2 if count2 else trophies
 
                 # Stats do Embed 1
                 colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
@@ -889,10 +1101,32 @@ class Pages():
                 Atk_geral1 = [0, 0] # [vitórias, total]
                 Def_geral1 = [0, 0] # [vitórias, total]
                 Map_geral1 = [0, 0] # [vitórias, total]
+
+                pistol_geral1  = [0, 0]
+                pWp_geral1     = [0, 0]
+                pLp_geral1     = [0, 0]
+
+                rating_geral1 = team_ratings1.get(0)
+                str_rating_geral1 = str(rating_geral1.get('rating'))
+                rating_pos_geral1 = rating_geral1.get("pos")
+
+                leadearboard_pos_geral1 = top_spots[rating_pos_geral1] if rating_pos_geral1 < 4 else f"{rating_pos_geral1}º"
+
+
                 mapas_jogados_geral2 = 0
                 Atk_geral2 = [0, 0] # [vitórias, total]
                 Def_geral2 = [0, 0] # [vitórias, total]
                 Map_geral2 = [0, 0] # [vitórias, total]
+
+                pistol_geral2  = [0, 0]
+                pWp_geral2     = [0, 0]
+                pLp_geral2     = [0, 0]
+
+                rating_geral2 = team_ratings2.get(0)
+                str_rating_geral2 = str(rating_geral2.get('rating'))
+                rating_pos_geral2 = rating_geral2.get("pos")
+
+                leadearboard_pos_geral2 = top_spots[rating_pos_geral2] if rating_pos_geral2 < 4 else f"{rating_pos_geral2}º"
 
                 # EMBED 2->8 - Mapas
                 pool = []
@@ -907,6 +1141,14 @@ class Pages():
                     Map_geral1[0] += mapa1['info']['map_'][0]
                     Map_geral1[1] += mapa1['info']['map_'][1]
 
+                    pistol_geral1[0] += mapa1['info']["pistol"][0]
+                    pistol_geral1[1] += mapa1['info']["pistol"][1]
+                    pWp_geral1[0]    += mapa1['info']["post_W_pistol"][0]
+                    pWp_geral1[1]    += mapa1['info']["post_W_pistol"][1]
+                    pLp_geral1[0]    += mapa1['info']["post_L_pistol"][0]
+                    pLp_geral1[1]    += mapa1['info']["post_L_pistol"][1]
+                    
+
                     mapas_jogados_geral2 += mapa2["info"]["played"]
                     Atk_geral2[0] += mapa2['info']['atk_'][0]
                     Atk_geral2[1] += mapa2['info']['atk_'][1]
@@ -915,35 +1157,76 @@ class Pages():
                     Map_geral2[0] += mapa2['info']['map_'][0]
                     Map_geral2[1] += mapa2['info']['map_'][1]
 
+                    pistol_geral2[0] += mapa2['info']["pistol"][0]
+                    pistol_geral2[1] += mapa2['info']["pistol"][1]
+                    pWp_geral2[0]    += mapa2['info']["post_W_pistol"][0]
+                    pWp_geral2[1]    += mapa2['info']["post_W_pistol"][1]
+                    pLp_geral2[0]    += mapa2['info']["post_L_pistol"][0]
+                    pLp_geral2[1]    += mapa2['info']["post_L_pistol"][1]
+
+
                     mapa_jogado1 = mapa1["info"]["played"]
                     Atk1 = mapa1['info']['atk_'][0] / mapa1['info']['atk_'][1] if mapa1['info']['atk_'][1] > 0 else 0
                     Def1 = mapa1['info']['def_'][0] / mapa1['info']['def_'][1] if mapa1['info']['def_'][1] > 0 else 0
                     Map1 = mapa1['info']['map_'][0] / mapa1['info']['map_'][1] if mapa1['info']['map_'][1] > 0 else 0
+
+                    pistol1 = mapa1['info']["pistol"][0] / mapa1['info']["pistol"][1] if mapa1['info']["pistol"][1] > 0 else 0
+                    pWp1    = mapa1['info']["post_W_pistol"][0] / mapa1['info']["post_W_pistol"][1] if mapa1['info']["post_W_pistol"][1] > 0 else 0
+                    pLp1    = mapa1['info']["post_L_pistol"][0] / mapa1['info']["post_L_pistol"][1] if mapa1['info']["post_L_pistol"][1] > 0 else 0
+
 
                     mapa_jogado2 = mapa2["info"]["played"]
                     Atk2 = mapa2['info']['atk_'][0] / mapa2['info']['atk_'][1] if mapa2['info']['atk_'][1] > 0 else 0
                     Def2 = mapa2['info']['def_'][0] / mapa2['info']['def_'][1] if mapa2['info']['def_'][1] > 0 else 0
                     Map2 = mapa2['info']['map_'][0] / mapa2['info']['map_'][1] if mapa2['info']['map_'][1] > 0 else 0
 
+                    pistol2 = mapa2['info']["pistol"][0] / mapa2['info']["pistol"][1] if mapa2['info']["pistol"][1] > 0 else 0
+                    pWp2    = mapa2['info']["post_W_pistol"][0] / mapa2['info']["post_W_pistol"][1] if mapa2['info']["post_W_pistol"][1] > 0 else 0
+                    pLp2    = mapa2['info']["post_L_pistol"][0] / mapa2['info']["post_L_pistol"][1] if mapa2['info']["post_L_pistol"][1] > 0 else 0
+                    
+                    rating_1 = team_ratings1.get(mapa1["id"])
+                    str_rating_1 = str(rating_1.get('rating'))
+                    rating_pos_1 = rating_1.get("pos")
+    
+                    leadearboard_pos_1 = top_spots[rating_pos_1] if rating_pos_1 < 4 else f"{rating_pos_1}º"
+                    
                     Mapa1 = {
                         "nome": f"{mapa1['nome']}",
+                        "rating": str_rating_1,
+                        "leaderboard": leadearboard_pos_1,
                         "description": {
                             "jogado": mapa_jogado1,
                             "atk": Atk1,
                             "def": Def1,
-                            "map": Map1
+                            "map": Map1,
+                            "pistol": pistol1,
+                            "pWp": pWp1,
+                            "pLp": pLp1
                         },
+                        "stats": time_map_stats1[time_map_stats1["Map"] == mapa1["id"]],
                         "composicoes": []
                     }
 
+                    rating_2 = team_ratings2.get(mapa2["id"])
+                    str_rating_2 = str(rating_2.get('rating'))
+                    rating_pos_2 = rating_2.get("pos")
+    
+                    leadearboard_pos_2 = top_spots[rating_pos_2] if rating_pos_2 < 4 else f"{rating_pos_2}º"
+
                     Mapa2 = {
                         "nome": f"{mapa2['nome']}",
+                        "rating": str_rating_2,
+                        "leaderboard": leadearboard_pos_2,
                         "description": {
                             "jogado": mapa_jogado2,
                             "atk": Atk2,
                             "def": Def2,
-                            "map": Map2
+                            "map": Map2,
+                            "pistol": pistol2,
+                            "pWp": pWp2,
+                            "pLp": pLp2
                         },
+                        "stats": time_map_stats2[time_map_stats2["Map"] == mapa2["id"]],
                         "composicoes": []
                     }
 
@@ -991,6 +1274,10 @@ class Pages():
                                 <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
                                 <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
                                 <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
+                                <h5 style='text-align: center; margin: 0; color: #ef4444; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                    {leadearboard_pos_geral1}: {str_rating_geral1} de rating
+                                </h5>
+                                {Trophies1}
                             </div>
                             <!-- VS -->
                             <div style="flex: 2; text-align: center;">
@@ -1001,6 +1288,10 @@ class Pages():
                                 <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
                                 <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
                                 <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
+                                <h5 style='text-align: center; margin: 0; color: #3b82f6; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                    {leadearboard_pos_geral2}: {str_rating_geral2} de rating
+                                </h5>
+                                {Trophies2}
                             </div>
                         </div>
                         """, 
@@ -1012,9 +1303,18 @@ class Pages():
                     Def1_ = Def_geral1[0]/Def_geral1[1] if Def_geral1[1] > 0 else 0
                     Map1_ = Map_geral1[0]/Map_geral1[1] if Map_geral1[1] > 0 else 0
 
+                    pistol1_ = pistol_geral1[0]/pistol_geral1[1] if pistol_geral1[1] > 0 else 0
+                    pWp1_ = pWp_geral1[0]/pWp_geral1[1] if pWp_geral1[1] > 0 else 0
+                    pLp1_ = pLp_geral1[0]/pLp_geral1[1] if pLp_geral1[1] > 0 else 0
+
+
                     Atk2_ = Atk_geral2[0]/Atk_geral2[1] if Atk_geral2[1] > 0 else 0
                     Def2_ = Def_geral2[0]/Def_geral2[1] if Def_geral2[1] > 0 else 0
                     Map2_ = Map_geral2[0]/Map_geral2[1] if Map_geral2[1] > 0 else 0
+
+                    pistol2_ = pistol_geral2[0]/pistol_geral2[1] if pistol_geral2[1] > 0 else 0
+                    pWp2_ = pWp_geral2[0]/pWp_geral2[1] if pWp_geral2[1] > 0 else 0
+                    pLp2_ = pLp_geral2[0]/pLp_geral2[1] if pLp_geral2[1] > 0 else 0
                     
 
                     st.markdown("<h3 style='text-align: center;'>Statísticas</h3>", unsafe_allow_html=True)
@@ -1153,6 +1453,15 @@ class Pages():
                         
                         {"Métrica": "Mapa", "Time": time1["tag"], "Winrate": Map1_},
                         {"Métrica": "Mapa", "Time": time2["tag"], "Winrate": Map2_},
+
+                        {"Métrica": "Pistol", "Time": time1["tag"], "Winrate": pistol1_},
+                        {"Métrica": "Pistol", "Time": time2["tag"], "Winrate": pistol2_},
+
+                        {"Métrica": "PostWin Pistol", "Time": time1["tag"], "Winrate": pWp1_},
+                        {"Métrica": "PostWin Pistol", "Time": time2["tag"], "Winrate": pWp2_},
+
+                        {"Métrica": "PostLoss Pistol", "Time": time1["tag"], "Winrate": pLp1_},
+                        {"Métrica": "PostLoss Pistol", "Time": time2["tag"], "Winrate": pLp2_},
                     ]
                     df_comparacao = pd.DataFrame(dados_confronto)
 
@@ -1251,6 +1560,10 @@ class Pages():
                                     <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
                                     <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
+                                    <h5 style='text-align: center; margin: 0; color: #ef4444; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {leadearboard_pos_geral1}: {str_rating_geral1} de rating
+                                    </h5>
+                                    {Trophies1}
                                 </div>
                                 <!-- VS -->
                                 <div style="flex: 2; text-align: center;">
@@ -1261,6 +1574,10 @@ class Pages():
                                     <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
                                     <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
                                     <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
+                                    <h5 style='text-align: center; margin: 0; color: #3b82f6; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {leadearboard_pos_geral2}: {str_rating_geral2} de rating
+                                    </h5>
+                                    {Trophies2}
                                 </div>
                             </div>
                             """, 
@@ -1305,6 +1622,8 @@ class Pages():
 
                         map_confronto = []
                         AtkDef_confronto = []
+                        pistol_confronto = []
+                        rating_confronto = []
 
                         tag_a = time1["tag"]
                         tag_b = time2["tag"]
@@ -1316,8 +1635,16 @@ class Pages():
                             AtkDef_confronto.append({"Time": tag_a, "Mapa": pag_t1["nome"], "W% Ataque": pag_t1["description"]["atk"], "W% Defesa": pag_t1["description"]["def"], "jogado": pag_t1["description"]["jogado"]})
                             AtkDef_confronto.append({"Time": tag_b, "Mapa": pag_t2["nome"], "W% Ataque": pag_t2["description"]["atk"], "W% Defesa": pag_t2["description"]["def"], "jogado": pag_t2["description"]["jogado"]})
 
+                            pistol_confronto.append({"Time": tag_a, "Mapa": pag_t1["nome"], "W% Pistol": pag_t1["description"]["pistol"], "W% pWp": pag_t1["description"]["pWp"], "W% pLp": pag_t1["description"]["pLp"], "jogado": pag_t1["description"]["jogado"]})
+                            pistol_confronto.append({"Time": tag_b, "Mapa": pag_t2["nome"], "W% Pistol": pag_t2["description"]["pistol"], "W% pWp": pag_t2["description"]["pWp"], "W% pLp": pag_t2["description"]["pLp"], "jogado": pag_t2["description"]["jogado"]})
+
+                            rating_confronto.append({"Time": tag_a, "Mapa": pag_t1["nome"], "Rating": pag_t1["rating"], "jogado": pag_t1["description"]["jogado"]})
+                            rating_confronto.append({"Time": tag_b, "Mapa": pag_t2["nome"], "Rating": pag_t2["rating"], "jogado": pag_t2["description"]["jogado"]})
+
                         map_df = pd.DataFrame(map_confronto)
                         AtkDef_df = pd.DataFrame(AtkDef_confronto)
+                        pistol_df = pd.DataFrame(pistol_confronto)
+                        ratings_df = pd.DataFrame(rating_confronto)
 
                         mapas_jogos = {}
                         for item in AtkDef_confronto:
@@ -1330,6 +1657,29 @@ class Pages():
                             jogos_a = mapas_jogos.get(mapa, {}).get(tag_a, 0)
                             jogos_b = mapas_jogos.get(mapa, {}).get(tag_b, 0)
                             return f"{mapa}<br><span style='font-size:13px; color:#888888;'>{tag_a}:{jogos_a} | {tag_b}:{jogos_b}</span>"
+
+                        ratings_df["Mapa_Detalhado"] = ratings_df.apply(formatar_eixo_x, axis=1)
+
+                        ratings_df["Rating"] = pd.to_numeric(ratings_df["Rating"], errors="coerce").fillna(0).astype(int)
+                        ratings_df = ratings_df.sort_values(by="Rating", ascending=False)
+
+                        min_rate = int(ratings_df["Rating"].min())
+                        max_rate = int(ratings_df["Rating"].max())
+                        
+                        fig = px.bar(
+                            ratings_df,
+                            x="Mapa_Detalhado",        
+                            y="Rating",        
+                            color="Time",      
+                            barmode="group",    
+                            title="Comparação de Rating por Mapa",
+                            labels={"Rating": "Rating", "Mapa_Detalhado": "Mapas"},
+                            color_discrete_map={tag_a: "#ef4444", tag_b: "#3b82f6"} 
+                        )
+                        
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(range=[min_rate-100, max_rate+100])
+                        st.plotly_chart(fig, width='stretch')
                         
                         map_df["Mapa_Detalhado"] = map_df.apply(formatar_eixo_x, axis=1)
 
@@ -1379,7 +1729,7 @@ class Pages():
                             y="Winrate",
                             color="Lado do Time",
                             barmode="group",
-                            title="Confronto Direto de Execução (Ataque vs Defesa) por Mapa",
+                            title="Confronto Direto de Execução (Ataque vs Defesa) por Mapa (%)",
                             color_discrete_map=cores_customizadas,
                             labels={"Mapa_Detalhado": "Mapas", "Winrate": "Winrate (%)"}
                         )
@@ -1388,41 +1738,78 @@ class Pages():
                         fig.update_yaxes(tickformat=".0%", range=[0, 1])
 
                         fig.update_traces(
-                            hovertemplate="<b>%{x}</b><br>Winrate: %{y:.2f}%<extra></extra>"
+                            hovertemplate="<b>%{x}</b><br>Winrate: %{y:.0%}<extra></extra>",
                         )
 
                         # Renderiza no Streamlit ocupando a largura total
                         st.plotly_chart(fig, width='stretch')
 
-                        
+                        # Pistol DataFrame
 
-                    else:
-                        st.markdown(
-                            f"""
-                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                <!-- Time 1 -->
-                                <div style="flex: 4; text-align: center;">
-                                    <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
-                                    <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
-                                    <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
-                                </div>
-                                <!-- VS -->
-                                <div style="flex: 2; text-align: center;">
-                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 800;'>VS</h1>
-                                </div>
-                                <!-- Time 2 -->
-                                <div style="flex: 4; text-align: center;">
-                                    <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
-                                    <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
-                                    <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
-                                </div>
-                            </div>
-                            """, 
-                            unsafe_allow_html=True
+                        pistol_df["Mapa_Detalhado"] = pistol_df.apply(formatar_eixo_x, axis=1)
+
+                        fig = px.bar(
+                            pistol_df,
+                            x="Mapa_Detalhado",        
+                            y="W% Pistol",        
+                            color="Time",      
+                            barmode="group",    
+                            title="Comparação de Aproveitamento de Pistol por mapa (%)",
+                            labels={"W% Pistol": "Winrate", "Mapa_Detalhado": "Mapas"},
+                            color_discrete_map={tag_a: "#ef4444", tag_b: "#3b82f6"} 
+                        )
+                        
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+                        st.plotly_chart(fig, width='stretch')
+
+                        # Pós pistol
+
+                        pistol_df["Mapa_Com_Jogos"] = pistol_df.apply(
+                            lambda row: f"{row['Mapa']}<br><span style='font-size:10px; color:gray;'>{tag_a}:{row['jogado']} | {tag_b}:{row['jogado']}</span>", 
+                            axis=1
                         )
 
-                        st.divider()
+                        pistol_df["Mapa_Detalhado"] = pistol_df.apply(formatar_eixo_x, axis=1)
 
+                        pistol_df2 = pd.melt(
+                            pistol_df, 
+                            id_vars=["Time", "Mapa_Detalhado"], 
+                            value_vars=["W% pWp", "W% pLp"],
+                            var_name="Lado",
+                            value_name="Winrate"
+                        )
+                        pistol_df2["Lado do Time"] = pistol_df2["Lado"] + " (" + pistol_df2["Time"] + ")"
+
+                        cores_customizadas = {
+                            f"W% pWp ({tag_a})": "#b91c1c",  # Vermelho Escuro
+                            f"W% pLp ({tag_a})": "#fca5a5",  # Azul Escuro
+                            f"W% pWp ({tag_b})": "#1d4ed8",  # Vermelho Claro/Pastel
+                            f"W% pLp ({tag_b})": "#93c5fd"   # Azul Claro/Pastel
+                        }
+
+                        fig = px.bar(
+                            pistol_df2,
+                            x="Mapa_Detalhado",
+                            y="Winrate",
+                            color="Lado do Time",
+                            barmode="group",
+                            title="Confronto Direto de pós-pistols por Mapa (%)",
+                            color_discrete_map=cores_customizadas,
+                            labels={"Mapa_Detalhado": "Mapas", "Winrate": "Winrate (%)"}
+                        )
+
+                        fig.update_xaxes(tickangle=0)
+                        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+
+                        fig.update_traces(
+                            hovertemplate="<b>%{x}</b><br>Winrate: %{y:.0%}<extra></extra>"
+                        )
+
+                        # Renderiza no Streamlit ocupando a largura total
+                        st.plotly_chart(fig, width='stretch')
+
+                    else:
                         map_confronto = []
                         AtkDef_confronto = []
 
@@ -1434,6 +1821,124 @@ class Pages():
                                 mapa_view1 = pag_t1
                                 mapa_view2 = pag_t2
                                 break
+                        
+                        st.markdown(
+                            f"""
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <!-- Time 1 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time1["img_url"]}' alt="Team 1" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #ef4444; padding: 0;'>{time1['tag']}</h2>
+                                    <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time1['regiao']}'s team</h5>
+                                    <h5 style='text-align: center; margin: 0; color: #ef4444; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {mapa_view1["leaderboard"]}: {mapa_view1["rating"]} de rating
+                                    </h5>
+                                    {Trophies1}
+                                </div>
+                                <!-- VS -->
+                                <div style="flex: 2; text-align: center;">
+                                    <h1 style='margin: 0; color: #ff4b4b; font-style: italic; font-weight: 800;'>VS</h1>
+                                </div>
+                                <!-- Time 2 -->
+                                <div style="flex: 4; text-align: center;">
+                                    <img src='{time2["img_url"]}' alt="Team 2" style="width: 60%; max-width: 150px;">
+                                    <h2 style='margin: 8px 0 0 0; color: #3b82f6; padding: 0;'>{time2['tag']}</h2>
+                                    <h5 style='margin: 0; color: #888888; font-weight: normal;'>{time2['regiao']}'s team</h5>
+                                    <h5 style='text-align: center; margin: 0; color: #3b82f6; padding: 0; padding-bottom: 15px; line-height: 1.1;'>
+                                        {mapa_view2["leaderboard"]}: {mapa_view2["rating"]} de rating
+                                    </h5>
+                                    {Trophies2}
+                                </div>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+
+                        st.divider()
+
+                        if not mapa_view1["stats"].empty and not mapa_view2["stats"].empty:
+                            fk1, fk2 = 0, 0
+                            fd1, fd2 = 0, 0
+
+                            st.markdown("<h3 style='text-align: center;'>Statísticas do Mapa</h3>", unsafe_allow_html=True)
+                            st.write("")
+        
+                            for val_t1, val_t2 in zip(mapa_view1["stats"].iloc[0].items(), mapa_view2["stats"].iloc[0].items()):
+                                chave1, valor1 = val_t1
+                                chave2, valor2 = val_t2
+                                coluna = chave1
+
+                                if coluna == "Map":
+                                    continue
+        
+                                if coluna in ["KAST", "HS"]:
+                                    texto_t1 = f"{valor1 * 100:.2f}%"
+                                    texto_t2 = f"{valor2 * 100:.2f}%"
+        
+                                    pct_bar_t1 = min(float(valor1), 1.0)
+                                    pct_bar_t2 = min(float(valor2), 1.0)
+                                elif coluna == "FK":
+                                    fk1 = valor1
+                                    fk2 = valor2
+                                    continue
+                                elif coluna == "FD":
+                                    fd1 = valor1
+                                    fd2 = valor2
+                                    if fd1 != 0 and fd2 != 0:
+                                        valor1 = fk1/fd1
+                                        valor2 = fk2/fd2
+                                        texto_t1 = f"{valor1:.2f}"
+                                        texto_t2 = f"{valor2:.2f}"
+
+                                        max_valor = max(valor1, valor2, 0.001) 
+                                        pct_bar_t1 = float(valor1 / max_valor)
+                                        pct_bar_t2 = float(valor2 / max_valor)
+
+                                        coluna = "FKFD"
+                                else:
+                                    texto_t1 = f"{valor1:.2f}"
+                                    texto_t2 = f"{valor2:.2f}"
+                                    
+                                    max_valor = max(valor1, valor2, 0.001) 
+                                    pct_bar_t1 = float(valor1 / max_valor)
+                                    pct_bar_t2 = float(valor2 / max_valor)
+        
+                                # Mantém a sua lógica de destaque para o maior valor
+                                estilo_t1 = "font-weight: bold; color: #FFFFFF;" if valor1 >= valor2 else "font-weight: normal; color: #888888;"
+                                estilo_t2 = "font-weight: bold; color: #FFFFFF;" if valor2 >= valor1 else "font-weight: normal; color: #888888;"
+        
+                                # Converte as porcentagens em inteiro (de 0 a 100) para o CSS width
+                                p1 = int(pct_bar_t1 * 100) if isinstance(pct_bar_t1, float) and pct_bar_t1 <= 1.0 else int(pct_bar_t1)
+                                p2 = int(pct_bar_t2 * 100) if isinstance(pct_bar_t2, float) and pct_bar_t2 <= 1.0 else int(pct_bar_t2)
+        
+                                html_barras = f"""
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-family: sans-serif; font-size: 14px;">
+                                    <!-- Valor Time 1 -->
+                                    <div style="width: 12%; text-align: right; {estilo_t1} white-space: nowrap;">
+                                        {texto_t1}
+                                    </div>
+                                    <!-- Barra Time 1 (Cresce da direita para a esquerda) -->
+                                    <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden; display: flex; justify-content: flex-end;">
+                                        <div style="background-color: #ef4444; width: {p1}%; height: 100%; border-radius: 5px;"></div>
+                                    </div>
+                                    <!-- Nome da Métrica (Centro) -->
+                                    <div style="width: 26%; text-align: center; color: #888888; font-weight: bold; font-size: 13px; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {coluna}
+                                    </div>
+                                    <!-- Barra Time 2 (Cresce da esquerda para a direita) -->
+                                    <div style="width: 25%; background-color: #262730; height: 10px; border-radius: 5px; overflow: hidden;">
+                                        <div style="background-color: #3b82f6; width: {p2}%; height: 100%; border-radius: 5px;"></div>
+                                    </div>
+                                    <!-- Valor Time 2 -->
+                                    <div style="width: 12%; text-align: left; {estilo_t2} white-space: nowrap;">
+                                        {texto_t2}
+                                    </div>
+                                </div>
+                                """
+        
+                                st.markdown(html_barras, unsafe_allow_html=True)
+                            
+                            st.divider()
                         
                         comps1_lista = []
                         comps2_lista = []
@@ -1708,3 +2213,145 @@ class Pages():
             """,
             unsafe_allow_html=True
         )
+
+    def leaderboard(self):
+        times = rodar_sync(self.logic.get_value("times"))
+        times_aux = {time["tag"].lower(): time["img_url"] for time in times}
+        times = {time["tag"]: time["id"] for time in times}
+        times_opt = [None, "Americas", "China", "EMEA", "Pacific"] + [time for time in times.keys()]
+
+        mapas = rodar_sync(self.logic.get_value("maps"))
+        mapas = {mapa["nome"].lower(): id for id, mapa in mapas.items()}
+        mapas_opt = [mapa for mapa in mapas.keys()]
+        mapas["Geral"] = 0
+
+
+        col_logo, col_titulo, disc = st.columns([1, 5, 1])
+
+        with col_logo:
+            st.markdown(
+                '''
+                <p align="center">
+                    <img src="https://i.imgur.com/Lg026hv.png" alt="Team 1" style="width: 60%; width: 120px;">
+                </p>
+                ''', 
+                unsafe_allow_html=True
+            )
+
+        with col_titulo:
+            st.markdown("<h1 style='text-align: center;'>VlrBot Site</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center;'>Este é um site que proporciona uma visualização alternativa do VlrBot.</p>", unsafe_allow_html=True)
+        
+        with disc:
+            st.markdown(
+                """
+                <style>
+                /* Alveja todos os botões de link do Streamlit */
+                div[data-testid="stLinkButton"] > a {
+                    background-color: #5865F2 !important; /* Verde brilhante */
+                    color: #FFFFFF !important;            /* Texto preto para contraste */
+                    border: 2px solid #5865F2 !important;
+                    padding: 20px 40px !important;        /* Ajusta a ALTURA (20px top/bottom) e largura */
+                    font-weight: bold !important;
+                    border-radius: 8px !important;
+                }
+                
+                /* Efeito de Hover (passar o mouse) */
+                div[data-testid="stLinkButton"] > a:hover {
+                    background-color: #4752C4 !important;
+                    border-color: #4752C4 !important;
+                    color: #FFFFFF !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.link_button("Discord", "https://discord.gg/CQjRzfhvFw", width='stretch')
+            
+        st.divider()
+
+        col_com, espaço, col_graf = st.columns([2, 1, 8])
+
+        with col_com:
+            dado = None
+            executar = None
+
+            st.subheader("Parametros")
+            escopo = st.selectbox("Selecione o mapa a ser exibido", options=["Geral"] + mapas_opt, index=0, placeholder="Selecione um mapa")
+
+            condition = st.selectbox("Selecione uma Condição. Regiões são Limitantes; Times são Adicionados.", options=times_opt, index=0, placeholder="Selecione uma condição")
+
+            if escopo == "Geral":
+                str_escopo = escopo
+            else:
+                str_escopo = f"da {escopo}"
+
+            escopo = mapas[escopo]
+
+            if condition is None or condition in ["Americas", "China", "EMEA", "Pacific"]:
+                condition = condition
+                str_tipo = f"- Condition"
+            else:
+                str_tipo = f"+ {condition}"
+                condition = times[condition]
+
+            dado = load_leaderboard(escopo, condition, discover_reload_site())
+            if dado is not None:
+                executar = True
+
+        with col_graf:
+            esp1, col0, esp2 = st.columns([1, 4, 1.7])
+            with col0:
+                st.markdown("<h2 style='text-align: center;'>Visualização</h2>", unsafe_allow_html=True)
+
+                if executar:
+                    leaderboard_df = pd.DataFrame(dado)
+
+                    leaderboard_df = leaderboard_df.sort_values(by="posicao", ascending=True)
+                    min_rate = int(leaderboard_df["rating"].min())
+                    max_rate = int(leaderboard_df["rating"].max())
+
+                    if condition is None:
+                        str_tipo = ""
+
+                    title = f"Leaderboard {str_escopo} {str_tipo}"
+
+                    fig = px.bar(
+                        leaderboard_df,
+                        x="tag",        
+                        y="rating",      
+                        title=f"{title}",
+                        labels={"rating": "Rating", "tag": "Tag", "nome": "Nome"},
+                    )
+                    
+                    fig.update_xaxes(tickangle=0)
+                    fig.update_yaxes(range=[min_rate-100, max_rate+100])
+                    st.plotly_chart(fig, width='stretch')
+                    
+                else:
+                    st.write("Selecione um dado para exibir.")
+
+            # Footer com CSS Fixo na parte inferior da tela
+            st.markdown(
+                """
+                <style>
+                .footer {
+                    position: fixed;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    background-color: rgba(14, 17, 23, 0.95); /* Cor padrão escura do Streamlit com transparência */
+                    color: #888888;
+                    text-align: center;
+                    padding: 10px 0;
+                    font-size: 13px;
+                    border-top: 1px solid #262730;
+                    z-index: 999;
+                }
+                </style>
+                <div class="footer">
+                    <p>📊 Dados extraídos do VLR.gg • Cache limpa em janelas de 12 horas UTC • Banco de Dados: Neon Tech</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )

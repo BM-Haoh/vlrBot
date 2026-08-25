@@ -4,6 +4,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from discord.ext import tasks
 import disc_buttons as disB
+from typing import Optional
 import pandas as pd
 import asyncio
 import discord
@@ -153,9 +154,6 @@ async def auxilio(interaction: discord.Interaction):
     answer.add_field(name=f"**__{pre_region}__**", value=temp_answer, inline=True) # ultima região
 
     await interaction.edit_original_response(embed=answer)
-
-
-
 '''
                                             COMANDO            #2
 '''
@@ -183,7 +181,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         return
     
 
-    time, matches_decript, time_mapas, time_stats = res
+    time, matches_decript, time_mapas, time_stats, time_map_stats, time_ratings = res
 
     if type(time) == dict:
         embedList = []
@@ -207,7 +205,23 @@ async def info_time(interaction: discord.Interaction, time_query: str):
                          inline=True)
         
         embed0.set_footer(text='Glossário do "Livro" de Embeds')
-        
+
+        # Descricao Geral dos embeds:
+        trophies = "\n"
+        Trophies = "\n━━━━━━━━━━━━━━━━━━━━━━\n### :trophy: \n"
+        count = 0
+        for camp in logic.camps.keys():
+            if logic.camps[camp].get("winner") is not None:
+                if logic.camps[camp]["winner"] == time["id"]:
+                    count += 1
+                    Trophies += f"{logic.camps[camp]['nome']}\n"
+
+        Trophies = Trophies if count else trophies
+
+        numbers = [":zero:", ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
+        top_spots = ["0", ":first_place:", ':second_place:', ":third_place:"]
+
+        regiao = f"{time['regiao']}'s team" if time['regiao'] != '?' else "Team from Unknown region"
         
         # Stats do Embed 1
         colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
@@ -217,6 +231,10 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         Atk_geral = [0, 0] # [vitórias, total]
         Def_geral = [0, 0] # [vitórias, total]
         Map_geral = [0, 0] # [vitórias, total]
+  
+        pistol_geral  = [0, 0]
+        pWp_geral     = [0, 0]
+        pLp_geral     = [0, 0]
 
         win = "\u2588\u200a"
         lose = "\u2591\u200a"
@@ -234,6 +252,14 @@ async def info_time(interaction: discord.Interaction, time_query: str):
             Map_geral[0] += mapa['info']['map_'][0]
             Map_geral[1] += mapa['info']['map_'][1]
 
+            pistol_geral[0] += mapa['info']["pistol"][0]
+            pistol_geral[1] += mapa['info']["pistol"][1]
+            pWp_geral[0]    += mapa['info']["post_W_pistol"][0]
+            pWp_geral[1]    += mapa['info']["post_W_pistol"][1]
+            pLp_geral[0]    += mapa['info']["post_L_pistol"][0]
+            pLp_geral[1]    += mapa['info']["post_L_pistol"][1]
+
+            
             mapa_jogado = mapa["info"]["played"]
             Atk = mapa['info']['atk_'][0] / mapa['info']['atk_'][1] if mapa['info']['atk_'][1] > 0 else 0
             Def = mapa['info']['def_'][0] / mapa['info']['def_'][1] if mapa['info']['def_'][1] > 0 else 0
@@ -242,10 +268,68 @@ async def info_time(interaction: discord.Interaction, time_query: str):
             Def_emoji = win * int(Def * 10) + lose * (10 - int(Def * 10))
             Map_emoji = win * int(Map * 10) + lose * (10 - int(Map * 10))
 
-            embedMapa = discord.Embed(title=f"{time.get('tag')} - {mapa['nome']}",
-                            description=f"## Informações gerais do mapa:\nMapa jogado {mapa_jogado} vezes\n- Taxa de vitória no ataque: {Atk * 100:.2f}%\n  - {Atk_emoji}\n- Taxa de vitória na defesa: {Def * 100:.2f}%\n  - {Def_emoji}\n- Taxa de vitória geral no mapa: {Map * 100:.2f}%\n  - {Map_emoji}\n## Composições jogadas no mapa:",
-                            color=discord.Colour(0x1ABC9C))
+            pistol = mapa['info']["pistol"][0] / mapa['info']["pistol"][1] if mapa['info']["pistol"][1] > 0 else 0
+            pWp    = mapa['info']["post_W_pistol"][0] / mapa['info']["post_W_pistol"][1] if mapa['info']["post_W_pistol"][1] > 0 else 0
+            pLp    = mapa['info']["post_L_pistol"][0] / mapa['info']["post_L_pistol"][1] if mapa['info']["post_L_pistol"][1] > 0 else 0
+            pistol_emoji   = win * int(pistol * 10) + lose * (10 - int(pistol * 10))
+            pWp_emoji      = win * int(pWp * 10) + lose * (10 - int(pWp * 10))
+            pLp_emoji      = win * int(pLp * 10) + lose * (10 - int(pLp * 10))
+
+            # Descrição - MAPAS
+            rating_geral = time_ratings.get(mapa["id"])
+            str_rating_geral = str(rating_geral.get('rating'))
+            rating_pos = rating_geral.get("pos")
             
+            rating_number = ""
+            for c in str_rating_geral:
+                rating_number += numbers[int(c)]
+    
+            leadearboard_pos = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+    
+            descricao = f"{regiao}\n## Rating do Mapa: \n### {leadearboard_pos}: {rating_number}"
+            
+            embedMapa = discord.Embed(title=f"{time.get('tag')} - {mapa['nome']}",
+                            description=f"{descricao}",
+                            color=discord.Colour(0x1ABC9C))
+
+            embedMapa.set_thumbnail(url=time['img_url'])
+
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
+                                value=f"**__Stats do Mapa:__**", 
+                                inline=False)
+
+            stats_mapa = time_map_stats[time_map_stats["Map"] == mapa["id"]]
+
+            if not stats_mapa.empty:
+                fk = 0
+                fd = 0
+                for coluna, valor in stats_mapa.iloc[0].items():
+                    if coluna == "Map":
+                        continue
+                    if coluna in ["KAST", "HS"]:
+                        embedMapa.add_field(name=coluna, value=f"{valor*100:.2f}%", inline=True)
+                    elif coluna == "FK":
+                        fk = valor
+                    elif coluna == "FD" and fk != 0:
+                        fd = valor
+                        if fd != 0:
+                            value = fk / fd
+                            embedMapa.add_field(name="FKFD", value=f"{value:.2f}", inline=True)
+                    else:
+                        embedMapa.add_field(name=coluna, value=f"{valor:.2f}", inline=True)
+            else:
+                embedMapa.add_field(name="Sem estatísticas", value=f"---", inline=False)
+
+
+            value = f"Mapa jogado {mapa_jogado} vezes\n- Taxa de vitória no ataque: {Atk * 100:.2f}%\n  - {Atk_emoji}\n- Taxa de vitória na defesa: {Def * 100:.2f}%\n  - {Def_emoji}\n- Taxa de vitória geral no mapa: {Map * 100:.2f}%\n  - {Map_emoji}\n- Taxa de vitória de pistols: {pistol * 100:.2f}%\n  - {pistol_emoji}\n- Taxa de vitória pós-vitória no pistol: {pWp * 100:.2f}%\n  - {pWp_emoji}\n- Taxa de vitória pós-derrota no pistol: {pLp * 100:.2f}%\n  - {pLp_emoji}"
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
+                                value=f"**__Informações Gerais:__**\n{value}", 
+                                inline=False)
+
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                                value=f"**__Composições:__**", 
+                                inline=False)
+
             composicoes = mapa["descricao"][:-1].split("\n") # [:-1] para remover a última quebra de linha
             for comp in composicoes[:3]:
                 infos = comp.split("|")
@@ -264,14 +348,29 @@ async def info_time(interaction: discord.Interaction, time_query: str):
             embedMapa.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
             embedList.append(embedMapa)
 
-        # EMBED 1 - Overview
-        descricao = f"{time['regiao']}'s team\n"
+        # Descrição - EMBEDS 1 e 9
+        rating_geral = time_ratings.get(0)
+        str_rating_geral = str(rating_geral.get('rating'))
+        rating_pos = rating_geral.get("pos")
+        
+        rating_number = ""
+        for c in str_rating_geral:
+            rating_number += numbers[int(c)]
 
+        leadearboard_pos = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+
+        descricao = f"{regiao}\n## Rating Geral: \n### {leadearboard_pos}: {rating_number}{Trophies}"
+
+        # EMBED 1 - Overview
         embed1 = discord.Embed(title=f"{time['tag']}",
-                            description=f"{descricao}### Stats do último campeonato:",
+                            description=f"{descricao}",
                             color=discord.Colour(0x1ABC9C))
 
         embed1.set_thumbnail(url=time['img_url'])
+
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
+                         value=f"**__Stats do último Campeonato:__**", 
+                         inline=False)
 
         # Stats último camp
         for coluna in colunas:
@@ -281,6 +380,7 @@ async def info_time(interaction: discord.Interaction, time_query: str):
                 embed1.add_field(name=coluna, value=f"{stats_recente[coluna]:.2f}", inline=True)
         embed1.add_field(name="Clutches", value=f"{stats_recente['CLw']}/{stats_recente['CLp']}", inline=True)
 
+
         # Infos gerais de win rate
         value = f"Mapas jogados: {mapas_jogados_geral}\n"
         Atk_ = Atk_geral[0]/Atk_geral[1] if Atk_geral[1] > 0 else 0
@@ -289,8 +389,15 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
         Map_ = Map_geral[0]/Map_geral[1] if Map_geral[1] > 0 else 0
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+
+        pistol_ = pistol_geral[0]/pistol_geral[1] if pistol_geral[1] > 0 else 0
+        pistol_emoji = win * int(pistol_ * 10) + lose * (10 - int(pistol_ * 10))
+        pWp_ = pWp_geral[0]/pWp_geral[1] if pWp_geral[1] > 0 else 0
+        pWp_emoji = win * int(pWp_ * 10) + lose * (10 - int(pWp_ * 10))
+        pLp_ = pLp_geral[0]/pLp_geral[1] if pLp_geral[1] > 0 else 0
+        pLp_emoji = win * int(pLp_ * 10) + lose * (10 - int(pLp_ * 10))
         
-        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}\n- Pistol W% ({pistol_*100:.2f}%)\n{pistol_emoji}\n- PostWin Pistol W% ({pWp_*100:.2f}%)\n{pWp_emoji}\n- PostLoss Pistol W% ({pLp_*100:.2f}%)\n{pLp_emoji}"
         embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━", 
                          value=f"**__Informações Gerais:__**\n{value}", 
                          inline=False)
@@ -308,8 +415,12 @@ async def info_time(interaction: discord.Interaction, time_query: str):
         embed3 = discord.Embed(title=time.get("tag") + " - Estatísticas Históricas",
                             description=descricao,
                             color=discord.Colour(0x1ABC9C))
+
         for coluna in colunas:
-            embed3.add_field(name=coluna, value=f"{time_stats[coluna].mean():.2f}", inline=True)
+            if coluna in ["KAST", "HS"]:
+                embed3.add_field(name=coluna, value=f"{time_stats[coluna].mean()*100:.2f}%", inline=True)
+            else:
+                embed3.add_field(name=coluna, value=f"{time_stats[coluna].mean():.2f}", inline=True)
         embed3.add_field(name="Clutches", value=f"{time_stats['CLw'].sum()}/{time_stats['CLp'].sum()}", inline=True)
 
         embed3.set_footer(text="Base de dados: VLR.gg — Inteligência e análise de dados autoral.")
@@ -357,8 +468,8 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         return
     
 
-    time1, matches_decript1, time_mapas1, time_stats1 = res1
-    time2, matches_decript2, time_mapas2, time_stats2 = res2
+    time1, matches_decript1, time_mapas1, time_stats1, time_map_stats1, time_ratings1 = res1
+    time2, matches_decript2, time_mapas2, time_stats2, time_map_stats2, time_ratings2 = res2
 
     if type(time1) == dict and type(time2) == dict:
         embedList = []
@@ -385,6 +496,18 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         
         embed0.set_footer(text='Glossário do "Livro" de Embeds')
 
+        # Descricao Geral dos embeds:
+        Trophies_count1 = 0
+        Trophies_count2 = 0
+        for camp in logic.camps.keys():
+            if logic.camps[camp].get("winner") is not None:
+                if logic.camps[camp]["winner"] == time1["id"]:
+                    Trophies_count1 += 1
+                elif logic.camps[camp]["winner"] == time2["id"]:
+                    Trophies_count2 += 1
+
+        numbers = [":zero:", ":one:", ":two:", ":three:", ":four:", ":five:", ":six:", ":seven:", ":eight:", ":nine:"]
+        top_spots = ["0", ":first_place:", ':second_place:', ":third_place:"]
         
         # Stats do Embed 1
         colunas = ["Rating", "ACS", "KD", "KAST", "ADR", "KPR", "APR", "FKFD", "HS"]
@@ -397,6 +520,10 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Def_geral1 = [0, 0] # [vitórias, total]
         Map_geral1 = [0, 0] # [vitórias, total]
 
+        pistol_geral1  = [0, 0]
+        pWp_geral1     = [0, 0]
+        pLp_geral1     = [0, 0]
+
         # Informações para criação do embed: Sessão time 2
         idx_mais_recente2 = time_stats2["Camp"].idxmax()
         stats_recente2 = time_stats2.loc[idx_mais_recente2]
@@ -404,6 +531,10 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Atk_geral2 = [0, 0]
         Def_geral2 = [0, 0]
         Map_geral2 = [0, 0]
+
+        pistol_geral2  = [0, 0]
+        pWp_geral2     = [0, 0]
+        pLp_geral2     = [0, 0]
 
         win = "\u2588\u200a"
         lose = "\u2591\u200a"
@@ -422,6 +553,13 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             Map_geral1[0] += mapa1['info']['map_'][0]
             Map_geral1[1] += mapa1['info']['map_'][1]
 
+            pistol_geral1[0] += mapa1['info']["pistol"][0]
+            pistol_geral1[1] += mapa1['info']["pistol"][1]
+            pWp_geral1[0]    += mapa1['info']["post_W_pistol"][0]
+            pWp_geral1[1]    += mapa1['info']["post_W_pistol"][1]
+            pLp_geral1[0]    += mapa1['info']["post_L_pistol"][0]
+            pLp_geral1[1]    += mapa1['info']["post_L_pistol"][1]
+
             # Sessão time 2
             mapas_jogados_geral2 += mapa2["info"]["played"]
             Atk_geral2[0] += mapa2['info']['atk_'][0]
@@ -430,6 +568,13 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             Def_geral2[1] += mapa2['info']['def_'][1]
             Map_geral2[0] += mapa2['info']['map_'][0]
             Map_geral2[1] += mapa2['info']['map_'][1]
+
+            pistol_geral2[0] += mapa2['info']["pistol"][0]
+            pistol_geral2[1] += mapa2['info']["pistol"][1]
+            pWp_geral2[0]    += mapa2['info']["post_W_pistol"][0]
+            pWp_geral2[1]    += mapa2['info']["post_W_pistol"][1]
+            pLp_geral2[0]    += mapa2['info']["post_L_pistol"][0]
+            pLp_geral2[1]    += mapa2['info']["post_L_pistol"][1]
 
             # Sessão time 1
             mapa_jogado1 = mapa1["info"]["played"]
@@ -440,6 +585,14 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             Def_emoji1 = win * int(Def1 * 10) + lose * (10 - int(Def1 * 10))
             Map_emoji1 = win * int(Map1 * 10) + lose * (10 - int(Map1 * 10))
 
+            pistol1 = mapa1['info']["pistol"][0] / mapa1['info']["pistol"][1] if mapa1['info']["pistol"][1] > 0 else 0
+            pWp1    = mapa1['info']["post_W_pistol"][0] / mapa1['info']["post_W_pistol"][1] if mapa1['info']["post_W_pistol"][1] > 0 else 0
+            pLp1    = mapa1['info']["post_L_pistol"][0] / mapa1['info']["post_L_pistol"][1] if mapa1['info']["post_L_pistol"][1] > 0 else 0
+            pistol_emoji1   = win * int(pistol1 * 10) + lose * (10 - int(pistol1 * 10))
+            pWp_emoji1      = win * int(pWp1 * 10) + lose * (10 - int(pWp1 * 10))
+            pLp_emoji1      = win * int(pLp1 * 10) + lose * (10 - int(pLp1 * 10))
+
+
             # Sessão time 2
             mapa_jogado2 = mapa2["info"]["played"]
             Atk2 = mapa2['info']['atk_'][0] / mapa2['info']['atk_'][1] if mapa2['info']['atk_'][1] > 0 else 0
@@ -449,21 +602,149 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
             Def_emoji2 = win * int(Def2 * 10) + lose * (10 - int(Def2 * 10))
             Map_emoji2 = win * int(Map2 * 10) + lose * (10 - int(Map2 * 10))
 
+            pistol2 = mapa2['info']["pistol"][0] / mapa2['info']["pistol"][1] if mapa2['info']["pistol"][1] > 0 else 0
+            pWp2    = mapa2['info']["post_W_pistol"][0] / mapa2['info']["post_W_pistol"][1] if mapa2['info']["post_W_pistol"][1] > 0 else 0
+            pLp2    = mapa2['info']["post_L_pistol"][0] / mapa2['info']["post_L_pistol"][1] if mapa2['info']["post_L_pistol"][1] > 0 else 0
+            pistol_emoji2   = win * int(pistol2 * 10) + lose * (10 - int(pistol2 * 10))
+            pWp_emoji2      = win * int(pWp2 * 10) + lose * (10 - int(pWp2 * 10))
+            pLp_emoji2      = win * int(pLp2 * 10) + lose * (10 - int(pLp2 * 10))
+
+            # Descrição - MAPAS
+            # Sessão time 1
+            rating_geral = time_ratings1.get(mapa1["id"])
+            str_rating_geral = str(rating_geral.get('rating'))
+            rating_pos = rating_geral.get("pos")
+            
+            rating_number = ""
+            for c in str_rating_geral:
+                rating_number += numbers[int(c)]
+    
+            leadearboard_pos1 = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+
+            # Sessão time 2
+            rating_geral = time_ratings2.get(mapa2["id"])
+            str_rating_geral = str(rating_geral.get('rating'))
+            rating_pos = rating_geral.get("pos")
+            
+            rating_number = ""
+            for c in str_rating_geral:
+                rating_number += numbers[int(c)]
+    
+            leadearboard_pos2 = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+
             # Sessão geral
             embedMapa = discord.Embed(title=f"{time1.get('tag')} Vs. {time2.get('tag')} - {mapa1['nome']}",
                             description=f"{descricao}",
                             color=discord.Colour(0x1ABC9C))
 
             embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                                value=f"**__Ratings & Trophies:__**", 
+                                inline=False)
+
+            embedMapa.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", 
+                                value=f"- **Rating:** {leadearboard_pos1}\n- :trophy: **━** {Trophies_count1}", 
+                                inline=True)
+
+            embedMapa.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", 
+                                value=f"- **Rating:** {leadearboard_pos2}\n- :trophy: **━** {Trophies_count2}", 
+                                inline=True)
+            
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                                value=f"**__Stats do Mapa:__**", 
+                                inline=False)
+
+            # Stats do mapa
+            stats_mapa1 = time_map_stats1[time_map_stats1["Map"] == mapa1["id"]]
+            stats_mapa2 = time_map_stats2[time_map_stats2["Map"] == mapa2["id"]]
+
+            if stats_mapa1.empty and stats_mapa2.empty:
+                str_stats1 = "Sem Estatísticas"
+                str_stats2 = "Sem Estatísticas"
+                str_label = "---"
+            elif not stats_mapa1.empty and not stats_mapa2.empty:
+                fk1, fk2 = 0, 0
+                fd1, fd2 = 0, 0
+                str_stats1, str_stats2 = "", ""
+                str_label = ""
+                for col_tuple1, col_tuple2 in zip(stats_mapa1.iloc[0].items(), stats_mapa2.iloc[0].items()):
+                    if col_tuple1[0] == "Map":
+                        continue
+                    if col_tuple1[0] in ["KAST", "HS"]:
+                        str_stats1 += f"{col_tuple1[1]*100:.2f}%\n"
+                        str_stats2 += f"{col_tuple2[1]*100:.2f}%\n"
+                        str_label += f"{col_tuple1[0]}\n"
+                    elif col_tuple1[0] == "FK":
+                        fk1 = col_tuple1[1]
+                        fk2 = col_tuple2[1]
+                    elif col_tuple1[0] == "FD":
+                        fd1 = col_tuple1[1]
+                        fd2 = col_tuple2[1]
+                        if fd1 != 0 and fd2 != 0:
+                            value1 = fk1/fd1
+                            value2 = fk2/fd2
+                            str_stats1 += f"{value1:.2f}"
+                            str_stats2 += f"{value2:.2f}"
+                            str_label += f"FKFD"
+                    else:
+                        str_stats1 += f"{col_tuple1[1]:.2f}\n"
+                        str_stats2 += f"{col_tuple2[1]:.2f}\n"
+                        str_label += f"{col_tuple1[0]}\n"
+            else:
+                stats_mapa = stats_mapa1 if stats_mapa2.empty else stats_mapa2
+
+                fk = 0
+                fd = 0
+                str_stats = ""
+                str_label = ""
+
+                for coluna, valor in stats_mapa.iloc[0].items():
+                    if coluna == "Map":
+                        continue
+                    if coluna in ["KAST", "HS"]:
+                        str_stats +=f"{valor*100:.2f}%\n"
+                        str_label += f"{coluna}\n"
+                    elif coluna == "FK":
+                        fk = valor
+                    elif coluna == "FD" and fk != 0:
+                        fd = valor
+                        if fd != 0:
+                            value = fk / fd
+                            str_stats +=f"{value:.2f}"
+                            str_label += f"{coluna}"
+                    else:
+                        str_stats +=f"{valor:.2f}\n"
+                        str_label += f"{coluna}\n"
+
+                if stats_mapa1.empty:
+                    str_stats1 = "Sem Estatísticas"
+                    str_stats2 = str_stats
+                else:
+                    str_stats1 = str_stats
+                    str_stats2 = "Sem Estatísticas"
+
+            # Legenda
+            embedMapa.add_field(name="Stat:",
+                                value=str_label,
+                                inline=True)
+            # Time 1
+            embedMapa.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):",
+                                value=str_stats1,
+                                inline=True)
+            # Time 2
+            embedMapa.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):",
+                                value=str_stats2,
+                                inline=True)
+
+            embedMapa.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
                                 value=f"**__Informações Gerais:__**", 
                                 inline=False)
 
             # sessão time 1
-            value1 = f"Mapa jogado {mapa_jogado1} vezes\n- ATK w%: {Atk1 * 100:.2f}%\n  - {Atk_emoji1}\n- DEF w%: {Def1 * 100:.2f}%\n  - {Def_emoji1}\n- MAP W%: {Map1 * 100:.2f}%\n  - {Map_emoji1}\n"
+            value1 = f"Mapa jogado {mapa_jogado1} vezes\n- ATK w%: {Atk1 * 100:.2f}%\n  - {Atk_emoji1}\n- DEF w%: {Def1 * 100:.2f}%\n  - {Def_emoji1}\n- MAP W%: {Map1 * 100:.2f}%\n  - {Map_emoji1}\n- Pistol W% ({pistol1*100:.2f}%)\n  - {pistol_emoji1}\n- PostWin Pistol W% ({pWp1*100:.2f}%)\n  - {pWp_emoji1}\n- PostLoss Pistol W% ({pLp1*100:.2f}%)\n  - {pLp_emoji1}"
             embedMapa.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", value=value1, inline=True)
 
             # Sessão time 2
-            value2 = f"Mapa jogado {mapa_jogado2} vezes\n- ATK w%: {Atk2 * 100:.2f}%\n  - {Atk_emoji2}\n- DEF w%: {Def2 * 100:.2f}%\n  - {Def_emoji2}\n- MAP W%: {Map2 * 100:.2f}%\n  - {Map_emoji2}\n"
+            value2 = f"Mapa jogado {mapa_jogado2} vezes\n- ATK w%: {Atk2 * 100:.2f}%\n  - {Atk_emoji2}\n- DEF w%: {Def2 * 100:.2f}%\n  - {Def_emoji2}\n- MAP W%: {Map2 * 100:.2f}%\n  - {Map_emoji2}\n- Pistol W% ({pistol2*100:.2f}%)\n  - {pistol_emoji2}\n- PostWin Pistol W% ({pWp2*100:.2f}%)\n  - {pWp_emoji2}\n- PostLoss Pistol W% ({pLp2*100:.2f}%)\n  - {pLp_emoji2}"
             embedMapa.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", value=value2, inline=True)
             
             
@@ -508,6 +789,41 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         embed1 = discord.Embed(title=f"{time1['tag']} Vs. {time2['tag']}",
                             description=f"{descricao}",
                             color=discord.Colour(0x1ABC9C))
+
+        # Descrição - Geral
+        # Sessão time 1
+        rating_geral = time_ratings1.get(0)
+        str_rating_geral = str(rating_geral.get('rating'))
+        rating_pos = rating_geral.get("pos")
+        
+        rating_number = ""
+        for c in str_rating_geral:
+            rating_number += numbers[int(c)]
+
+        leadearboard_pos1 = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+
+        # Sessão time 2
+        rating_geral = time_ratings2.get(0)
+        str_rating_geral = str(rating_geral.get('rating'))
+        rating_pos = rating_geral.get("pos")
+        
+        rating_number = ""
+        for c in str_rating_geral:
+            rating_number += numbers[int(c)]
+
+        leadearboard_pos2 = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
+
+        embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
+                         value=f"**__Ratings & Trophies:__**", 
+                         inline=False)
+
+        embed1.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", 
+                         value=f"- **Rating:** {leadearboard_pos1}\n- :trophy: **━** {Trophies_count1}", 
+                         inline=True)
+
+        embed1.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", 
+                         value=f"- **Rating:** {leadearboard_pos2}\n- :trophy: **━** {Trophies_count2}", 
+                         inline=True)
 
         embed1.add_field(name="━━━━━━━━━━━━━━━━━━━━━━",
                          value=f"**__Stats Último Campeonato:__**\n",
@@ -560,8 +876,16 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Def_emoji = win * int(Def_ * 10) + lose * (10 - int(Def_ * 10))
         Map_ = Map_geral1[0]/Map_geral1[1] if Map_geral1[1] > 0 else 0
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
+
+        pistol_ = pistol_geral1[0]/pistol_geral1[1] if pistol_geral1[1] > 0 else 0
+        pistol_emoji = win * int(pistol_ * 10) + lose * (10 - int(pistol_ * 10))
+        pWp_ = pWp_geral1[0]/pWp_geral1[1] if pWp_geral1[1] > 0 else 0
+        pWp_emoji = win * int(pWp_ * 10) + lose * (10 - int(pWp_ * 10))
+        pLp_ = pLp_geral1[0]/pLp_geral1[1] if pLp_geral1[1] > 0 else 0
+        pLp_emoji = win * int(pLp_ * 10) + lose * (10 - int(pLp_ * 10))
         
-        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}\n- Pistol W% ({pistol_*100:.2f}%)\n{pistol_emoji}\n- PostWin Pistol W% ({pWp_*100:.2f}%)\n{pWp_emoji}\n- PostLoss Pistol W% ({pLp_*100:.2f}%)\n{pLp_emoji}"
         embed1.add_field(name=f"{time1.get('emoji')} ({time1.get('tag')}):", 
                          value=f"{value}", 
                          inline=True)
@@ -575,7 +899,15 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
         Map_ = Map_geral2[0]/Map_geral2[1] if Map_geral2[1] > 0 else 0
         Map_emoji = win * int(Map_ * 10) + lose * (10 - int(Map_ * 10))
 
-        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}"
+        pistol_ = pistol_geral2[0]/pistol_geral2[1] if pistol_geral2[1] > 0 else 0
+        pistol_emoji = win * int(pistol_ * 10) + lose * (10 - int(pistol_ * 10))
+        pWp_ = pWp_geral2[0]/pWp_geral2[1] if pWp_geral2[1] > 0 else 0
+        pWp_emoji = win * int(pWp_ * 10) + lose * (10 - int(pWp_ * 10))
+        pLp_ = pLp_geral2[0]/pLp_geral2[1] if pLp_geral2[1] > 0 else 0
+        pLp_emoji = win * int(pLp_ * 10) + lose * (10 - int(pLp_ * 10))
+
+
+        value += f"- ATK W%: ({Atk_*100:.2f}%)\n{Atk_emoji}\n- DEF W%: ({Def_*100:.2f}%)\n{Def_emoji}\n- MAP W%: ({Map_*100:.2f}%)\n{Map_emoji}\n- Pistol W% ({pistol_*100:.2f}%)\n{pistol_emoji}\n- PostWin Pistol W% ({pWp_*100:.2f}%)\n{pWp_emoji}\n- PostLoss Pistol W% ({pLp_*100:.2f}%)\n{pLp_emoji}"
         embed1.add_field(name=f"{time2.get('emoji')} ({time2.get('tag')}):", 
                          value=f"{value}", 
                          inline=True)
@@ -658,7 +990,131 @@ async def times_vs(interaction: discord.Interaction, time_query_1: str, time_que
     else:
         await interaction.followup.send("Erro ao carregar um dos times.", ephemeral=True)
 
+'''
+                                            COMANDO            #4
+'''
+async def map_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[app_commands.Choice[str]]:
+    mapas_disponiveis = [(mapa["nome"], mapa_id) for mapa_id, mapa in logic.maps.items()]
+    mapas_filtrados = [
+        item for item in mapas_disponiveis
+        if current.lower() in item[0].lower()
+    ][:15]
+    return [
+        app_commands.Choice(name=mapa[0], value=str(mapa[1]))
+        for mapa in mapas_filtrados
+    ]
+
+async def condition_autocomplete(
+        interaction: discord.Interaction,
+        current: str
+) -> list[app_commands.Choice[str]]:
+    opcoes1 = [] # tags
+    opcoes2 = [] # nomes
+    opcoes = [("Americas", "Americas"), ("China", "China"), ("EMEA", "EMEA"), ("Pacific", "Pacific")] # regioes
+    for time in logic.times:
+        tag, nome, id = time["tag"], time["nome"], time["id"]
+        opcoes1.append((tag, id))
+        if tag != nome:
+            opcoes2.append((nome, id))
+    opcoes1.extend(opcoes2) # tags na frente de nomes
+    opcoes.extend(opcoes1) # regioes na frente dos times
+    opcoes_filtradas = [
+        opcao for opcao in opcoes
+        if current.lower() in opcao[0].lower()
+    ][:15]
+    return [
+        app_commands.Choice(name=nome, value=str(valor))
+        for nome, valor in opcoes_filtradas
+    ]
+
+@bot.tree.command(name="leaderboard", description="Diferente tabelas de ratings dos times", guild=GUILD_ID_INFO)
+@app_commands.describe(
+    map_query="Nome do mapa desejado. Deixe em brano para o Ranking Geral.",
+    condition="Digite a TAG/nome de um time (para incluí-lo) OU o nome da Região (ex: Americas, EMEA...)."
+)
+@app_commands.autocomplete(map_query=map_autocomplete, condition=condition_autocomplete)
+async def leaderboard(interaction: discord.Interaction, map_query: Optional[str] = "0", condition: Optional[str] = None):
+
+    await interaction.response.defer()
+
+    opcoes1 = {str(time["id"]):(time["tag"], time["emoji"]) for time in logic.times} # times
+    opcoes_cond = ["Americas", "China", "EMEA", "Pacific"] # regioes
+    opcoes_cond.extend(opcoes1.keys()) # regioes na frente dos times
+
+    mapas_disponiveis = {str(mapa_id): mapa.get("nome") for mapa_id, mapa in logic.maps.items()}
 
 
+    mensagem = ""
+
+    if map_query == "0":
+        map_query = 0
+    elif map_query not in mapas_disponiveis.keys():
+        mensagem += "Mapa fora das opções disponíveis. Rodando leaderboard geral\n"
+        map_query = 0
+    else:
+        map_query = int(map_query)
+
+    if condition is None:
+        condition = None
+    elif condition not in opcoes_cond:
+        mensagem += "Condição fora das opções disponíveis. Leaderboard padrão selecionado automaticamente\n"
+        condition = None
+    elif condition not in ["Americas", "China", "EMEA", "Pacific"]:
+        condition = int(condition)
+    elif condition == "Americas":
+        condition = "Amer"
+    
+    lb = await logic.get_leaderboard(int(map_query), condition)
+
+    if lb is None:
+        mensagem += "...\nErro: Leaderboard retornou vazia."
+        await interaction.edit_original_response(content=mensagem)
+    else:
+        if map_query == 0:
+            lb_escopo = "Geral"
+        else:
+            map_query = str(map_query)
+            lb_escopo = f"da {mapas_disponiveis[map_query]}"
+        if str(condition) in opcoes1.keys():
+            if len(lb) == 10:
+                str_tipo = ""
+            lb_tipo = opcoes1[str(condition)]
+            str_tipo = f"+ {lb_tipo[1]} ({lb_tipo[0]})"
+        elif condition is None:
+            str_tipo = ""
+        else:
+            str_tipo = f"- {condition}"
+
+  
+        mensagem += f'# :first_place: ({lb[0]["posicao"]}º)\n{lb[0]["emoji"]} ({lb[0]["tag"]} - {lb[0]["regiao"]}) **━** {lb[0]["rating"]}\n'
+        mensagem += f'## :second_place: ({lb[1]["posicao"]}º)\n{lb[1]["emoji"]} ({lb[1]["tag"]} - {lb[1]["regiao"]}) **━** {lb[1]["rating"]}\n'
+        mensagem += f'### :third_place: ({lb[2]["posicao"]}º)\n{lb[2]["emoji"]} ({lb[2]["tag"]} - {lb[2]["regiao"]}) **━** {lb[2]["rating"]}'
+
+        answer = discord.Embed(
+            title=f"Leaderboard {lb_escopo} {str_tipo}",
+            description=mensagem,
+            color=discord.Colour(0x1ABC9C)
+        )
+
+        answer.add_field(
+            name="━━━━━━━━━━━━━━━━━━━━━━", 
+            value="",
+            inline=False
+        )
+
+        for i, value in enumerate(lb):
+            if i in [0, 1, 2]:
+                continue
+            else:
+                answer.add_field(
+                    name=f'**{i+1}º ({value["posicao"]}º) ━ lugar**',
+                    value=f'{value["emoji"]} ({value["tag"]} - {value["regiao"]})\n{value["rating"]}',
+                    inline=True
+                )
+
+        await interaction.edit_original_response(embed=answer)
 
 bot.run(token, log_handler=handler, log_level=logging.DEBUG)
