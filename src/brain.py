@@ -238,7 +238,7 @@ async def load_leaderboard(map_id, condition):
                 )
 
                 leaderboard = await cur.fetchall()
-    elif condition in ["Americas", "China", "EMEA", "Pacific"]:
+    elif condition in ["Americas", "China", "EMEA", "APAC"]:
         async with await get_conn() as conn:
             async with conn.cursor() as cur:
                 await cur.execute("""
