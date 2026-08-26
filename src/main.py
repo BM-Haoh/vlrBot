@@ -1051,7 +1051,7 @@ async def condition_autocomplete(
         for nome, valor in opcoes_filtradas
     ]
 
-@bot.tree.command(name="leaderboard", description="Diferente tabelas de ratings dos times")
+@bot.tree.command(name="leaderboard", description="Diferente tabelas de ratings dos times", guild=GUILD_ID_INFO)
 @app_commands.describe(
     map_query="Nome do mapa desejado. Deixe em brano para o Ranking Geral.",
     condition="Digite a TAG/nome de um time (para incluí-lo) OU o nome da Região (ex: Americas, EMEA...)."
@@ -1062,7 +1062,7 @@ async def leaderboard(interaction: discord.Interaction, map_query: Optional[str]
     await interaction.response.defer()
 
     opcoes1 = {str(time["id"]):(time["tag"], time["emoji"]) for time in logic.times} # times
-    opcoes_cond = ["Americas", "China", "EMEA", "Pacific"] # regioes
+    opcoes_cond = ["Americas", "China", "EMEA", "APAC"] # regioes
     opcoes_cond.extend(opcoes1.keys()) # regioes na frente dos times
 
     mapas_disponiveis = {str(mapa_id): mapa.get("nome") for mapa_id, mapa in logic.maps.items()}
@@ -1083,11 +1083,9 @@ async def leaderboard(interaction: discord.Interaction, map_query: Optional[str]
     elif condition not in opcoes_cond:
         mensagem += "Condição fora das opções disponíveis. Leaderboard padrão selecionado automaticamente\n"
         condition = None
-    elif condition not in ["Americas", "China", "EMEA", "Pacific"]:
+    elif condition not in ["Americas", "China", "EMEA", "APAC"]:
         condition = int(condition)
-    elif condition == "Americas":
-        condition = "Amer"
-    
+
     lb = await logic.get_leaderboard(int(map_query), condition)
 
     if lb is None:
@@ -1099,20 +1097,28 @@ async def leaderboard(interaction: discord.Interaction, map_query: Optional[str]
         else:
             map_query = str(map_query)
             lb_escopo = f"da {mapas_disponiveis[map_query]}"
-        if str(condition) in opcoes1.keys():
+               
+        if condition is None:
+            str_tipo = ""
+        elif str(condition) in opcoes1.keys():
             if len(lb) == 10:
                 str_tipo = ""
             lb_tipo = opcoes1[str(condition)]
             str_tipo = f"+ {lb_tipo[1]} ({lb_tipo[0]})"
-        elif condition is None:
-            str_tipo = ""
         else:
             str_tipo = f"- {condition}"
 
-  
-        mensagem += f'# :first_place: ({lb[0]["posicao"]}º)\n{lb[0]["emoji"]} ({lb[0]["tag"]} - {lb[0]["regiao"]}) **━** {lb[0]["rating"]}\n'
-        mensagem += f'## :second_place: ({lb[1]["posicao"]}º)\n{lb[1]["emoji"]} ({lb[1]["tag"]} - {lb[1]["regiao"]}) **━** {lb[1]["rating"]}\n'
-        mensagem += f'### :third_place: ({lb[2]["posicao"]}º)\n{lb[2]["emoji"]} ({lb[2]["tag"]} - {lb[2]["regiao"]}) **━** {lb[2]["rating"]}'
+        regioes_top3 = lb[0]["regiao"], lb[1]["regiao"], lb[2]["regiao"]
+        reg_top3 = [lb[0]["regiao"], lb[1]["regiao"], lb[2]["regiao"]]
+
+        for i, reg in enumerate(regioes_top3):
+            if reg == "Americas":
+                reg_top3[i] = "Amer"
+
+
+        mensagem += f'# :first_place: ({lb[0]["posicao"]}º)\n{lb[0]["emoji"]} ({lb[0]["tag"]} - {reg_top3[0]}) **━** {lb[0]["rating"]}\n'
+        mensagem += f'## :second_place: ({lb[1]["posicao"]}º)\n{lb[1]["emoji"]} ({lb[1]["tag"]} - {reg_top3[1]}) **━** {lb[1]["rating"]}\n'
+        mensagem += f'### :third_place: ({lb[2]["posicao"]}º)\n{lb[2]["emoji"]} ({lb[2]["tag"]} - {reg_top3[2]}) **━** {lb[2]["rating"]}'
 
         answer = discord.Embed(
             title=f"Leaderboard {lb_escopo} {str_tipo}",
@@ -1130,6 +1136,8 @@ async def leaderboard(interaction: discord.Interaction, map_query: Optional[str]
             if i in [0, 1, 2]:
                 continue
             else:
+                if value["regiao"] == "Americas":
+                    value["regiao"] = "Amer"
                 answer.add_field(
                     name=f'**{i+1}º ({value["posicao"]}º) ━ lugar**',
                     value=f'{value["emoji"]} ({value["tag"]} - {value["regiao"]})\n{value["rating"]}',

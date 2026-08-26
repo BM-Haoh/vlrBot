@@ -8,6 +8,8 @@ website/
 **/auto_scraper.py
 **/auto.py
 **/DB_handler.py
+*.py[cod]
+.ipynb_checkpoints/
 
 **/site.py
 requirements_scraper.txt
@@ -15,6 +17,7 @@ requirements_site.txt
 
 .env
 *.log
+discord.log
 
 .git/
 .gitignore
