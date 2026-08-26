@@ -83,7 +83,6 @@ async def on_ready():
 '''
 
 
-
 '''
                                             COMANDO            #0 
 '''
@@ -120,7 +119,6 @@ async def auto_reload_cache():
                                             COMANDO            #1
 '''
 @bot.tree.command(name="help_times", description="Tags de pesquisa de time")
-
 async def auxilio(interaction: discord.Interaction):
     '''
     command that lists the tags of the teams for search, separated by region, and with the respective emojis.

@@ -834,7 +834,7 @@ class Pages():
             opções = list(set(opções))
             nome_dado = st.multiselect("Selecionador de regiões", options=opções, placeholder="Selecione regiões para visualizar")
 
-            comando = st.selectbox("Selecione um dos nossos comandos", options=["Info_time", "Times_vs"], index=None, placeholder="Selecione um comando")
+            comando = st.selectbox("Selecione um dos nossos comandos", options=["Info_time", "Times_vs", "Leaderboard"], index=None, placeholder="Selecione um comando")
 
         with col_graf:
             st.markdown("<h2 style='text-align: center; margin-bottom: 10px;'>Visualização</h2>", unsafe_allow_html=True)
@@ -952,6 +952,24 @@ class Pages():
                           Isso significa que o time A (da esquerda) jogou determinado mapa X vezes e que o time B (direita) jogou Y vezes.")
                 st.write("- Para não poluir muito a aba dos mapas, nesse comando as composições foram limitadas para até 3 composições. \
                           Assim como no \info_times, as composições com números menores são as mais recentes (A menos que tenha dado algum erro no banco de dados...)")
+
+            elif comando == "Leaderboard":
+                st.write("O /leaderboard funciona como ele sugere, um comando para visualizar uma tabela de rankeamente.\
+                         Para rankear os times, usamos um modelo bem básico. Para mapas, todos os times iniciam com 1000 pontos de rating\
+                         para cada mapa, enquanto o rating geral foi iniciado à depender da colocação do time no Kickoff\
+                         (máximo de 1400 e mínimo de 875). Sempre que uma partida acontece, atualizamos o rating dos times envolvidos.\
+                         o Rating base é 20 e adicionamos 10% da diferença de rating entre os dois times. Além disso, à depender da diferença de placar,\
+                         nós multiplicamos o rating ganho. Em um 3 a 0, o time que vencer ganha 1.5x mais rating, enquanto em um 3 a 2 seria apenas 1.2\
+                         (Os mapas tem uma mecânica semelhante, com 13 a 0 sendo 1.5x e 1.0x numa partida mais pegada, de 13 a 9 por exemplo).\
+                         A Quantidade mínima de rating obtida por partida é 7 para rating geral e 5 para rating de mapa.")
+                st.write("Coisas para saber sobre o comando:")
+                st.write("- **Padrão:** Normalmente, o comando vem preenchido com Mapa=Geral e Condition=None.\
+                          Isso te mostrara o top 10 times com mais rating.")
+                st.write("- **Mapa:** Alterar o mapa mostrara o top 10 times com mais rating no mapa especificado.")
+                st.write("- **Condition (Região):** Ao selecionar uma região, você verá o leaderboard de todos os times daquela região,\
+                          de acordo com o rating Geral (Se esse estiver selecionao em Mapa)")
+                st.write("- **Condition (Time):** Ao selecionar uma time, você verá o leaderboard do top 10 do mapa selecionado e,\
+                          se o time selecionado não estiver no top 10, ele será incluído no final da tabela.")
 
         st.markdown(
             """
