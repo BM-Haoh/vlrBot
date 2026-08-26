@@ -226,7 +226,7 @@ class Pages():
 
                     # Descrição - MAPAS
                     rating = time_ratings.get(mapa["id"])
-                    str_rating = str(rating_geral.get('rating'))
+                    str_rating = str(rating.get('rating'))
                     rating_pos = rating.get("pos")
 
                     leadearboard_pos = top_spots[rating_pos] if rating_pos < 4 else f"{rating_pos}º"
@@ -2290,7 +2290,7 @@ class Pages():
 
             if condition is None or condition in ["Americas", "China", "EMEA", "Pacific"]:
                 condition = condition
-                str_tipo = f"- Condition"
+                str_tipo = f"- {condition}"
             else:
                 str_tipo = f"+ {condition}"
                 condition = times[condition]

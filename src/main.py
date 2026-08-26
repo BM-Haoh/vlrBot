@@ -162,7 +162,7 @@ async def team_query_autocomplete(
     opcoes = [] # tags
     opcoes2 = [] # nomes
     for time in logic.times:
-        tag, nome = time["tag"], time["nome"]
+        tag, nome = time["tag"], f'{time["tag"]},  {time["nome"]}'
         opcoes2.append((tag, tag))
         if tag != nome:
             opcoes2.append((nome, tag))
@@ -1043,9 +1043,9 @@ async def condition_autocomplete(
 ) -> list[app_commands.Choice[str]]:
     opcoes1 = [] # tags
     opcoes2 = [] # nomes
-    opcoes = [("Americas", "Americas"), ("China", "China"), ("EMEA", "EMEA"), ("Pacific", "Pacific")] # regioes
+    opcoes = [("Americas", "Americas"), ("China", "China"), ("EMEA", "EMEA"), ("Pacific", "APAC")] # regioes
     for time in logic.times:
-        tag, nome, id = time["tag"], time["nome"], time["id"]
+        tag, nome, id = time["tag"], f'{time["tag"]},  {time["nome"]}', time["id"]
         opcoes1.append((tag, id))
         if tag != nome:
             opcoes2.append((nome, id))
