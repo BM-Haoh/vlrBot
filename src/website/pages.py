@@ -2290,6 +2290,8 @@ class Pages():
 
             if condition is None or condition in ["Americas", "China", "EMEA", "Pacific"]:
                 condition = condition
+                if condition == "Pacific":
+                    condition = "APAC"
                 str_tipo = f"- {condition}"
             else:
                 str_tipo = f"+ {condition}"
