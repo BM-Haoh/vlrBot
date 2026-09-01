@@ -1335,7 +1335,7 @@ class Pages():
                     pLp2_ = pLp_geral2[0]/pLp_geral2[1] if pLp_geral2[1] > 0 else 0
                     
 
-                    st.markdown("<h3 style='text-align: center;'>Statísticas</h3>", unsafe_allow_html=True)
+                    st.markdown("<h3 style='text-align: center;'>Estatísticas</h3>", unsafe_allow_html=True)
                     st.write("")
 
                     for coluna in colunas:
@@ -1878,7 +1878,7 @@ class Pages():
                             fk1, fk2 = 0, 0
                             fd1, fd2 = 0, 0
 
-                            st.markdown("<h3 style='text-align: center;'>Statísticas do Mapa</h3>", unsafe_allow_html=True)
+                            st.markdown("<h3 style='text-align: center;'>Estatísticas do Mapa</h3>", unsafe_allow_html=True)
                             st.write("")
         
                             for val_t1, val_t2 in zip(mapa_view1["stats"].iloc[0].items(), mapa_view2["stats"].iloc[0].items()):
