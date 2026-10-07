@@ -212,6 +212,9 @@ def register_map_stats(navegador, map_id, map_name, match_id, times, cur):
                         else:
                             statsB["player"] = name
 
+                    elif "mod-agents" in item.get_attribute('class'):
+                        continue
+
                     elif item.get_attribute('data-col') in ["kd-diff", "fk-diff"]:
                         continue
 
@@ -397,7 +400,7 @@ def map_treatment(navegador, map):
     OT = False
     for round in rounds[1:]:
         round = round.get_attribute('title').split('-')
-        if round == ['']:
+        if round == [''] or round == ["Side swap"]:
             round_sequence += 'X'
         elif start[0] != round[0]:
             round_sequence += "A"
