@@ -324,6 +324,9 @@ class Brain:
         self.partidas = cache[5]        # partidas
         self.mapas_jogados = cache[6]   # mapas_jogados
         self.players = {}
+        self.team_ratings = {}
+        self.map_stats = {}
+        self.leaderboard = {}
 
     async def info_time(self, time_tag, preTable=None, preRating=None, preTeamStats=None):
         # If the times list is empty, we return a specific error code (1)
